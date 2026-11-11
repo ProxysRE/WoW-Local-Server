@@ -23,6 +23,15 @@ def prepare_teleporter(root=ROOT):
         raise RuntimeError("Teleporter template layout changed; review adaptation")
     # Custom SQL runs after core updates. 2026_06_16_00 renames creature.id1
     # to id, so preserve the upstream teleporter's id column here.
+    # The pinned spawns have phaseMask=0, making them invisible until the core
+    # repairs them in memory. Write a valid mask into the database instead.
+    before_spawns, marker, spawns = sql.partition("-- Teleporter spawns:")
+    if not marker:
+        raise RuntimeError("Teleporter spawn section missing")
+    spawns, count = re.subn(r"(?m)^(\(@ENTRY, (?:0|1|530|571), 1, )0,", r"\g<1>1,", spawns)
+    if count != 12:
+        raise RuntimeError("Teleporter spawn layout changed; review phase masks")
+    sql = before_spawns + marker + spawns
     # Avoid removing unrelated gameobjects in an existing world.
     sql = sql.replace("DELETE from gameobject WHERE ID = @RUNE AND guid >= 200000;",
                       "-- Decorative rune deletion omitted in the local-server adaptation.")
@@ -32,6 +41,10 @@ def prepare_teleporter(root=ROOT):
     output = root / "core/data/sql/custom/db_world/2026_11_11_00_local_teleporter.sql"
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(sql, encoding="utf-8", newline="\n")
+    # Repair existing installations where the original custom import succeeded.
+    output.with_name("2026_11_11_01_local_teleporter_phase.sql").write_text(
+        "UPDATE creature SET phaseMask = 1 WHERE id = 190000 AND phaseMask = 0;\n",
+        encoding="utf-8", newline="\n")
     return output
 
 
