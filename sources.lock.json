@@ -50,6 +50,13 @@
       "branch": "master",
       "commit": "38078d1d9c21b7d21d8c5c5ef9d5fc8617dd5fb7",
       "path": "dependencies/sql-npc-teleporter"
+    },
+    {
+      "name": "mod-1v1-arena",
+      "repository": "azerothcore/mod-1v1-arena",
+      "branch": "master",
+      "commit": "5ef5708d031f3b02283e6e599aa655bd320d904e",
+      "path": "core/modules/mod-1v1-arena"
     }
   ]
 }

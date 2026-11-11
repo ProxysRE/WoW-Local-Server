@@ -3,7 +3,8 @@
 AzerothCore 3.3.5a под Windows x64 для локальной игры с Playerbots.
 
 **Состав:** Playerbots, AHBot, Reforging, NPC Teleporter, Transmog, Individual Progression.
-Новых рас нет. Арена 1×1 пока исключена: автоматическое участие Playerbots не подтверждено.
+Новых рас нет. В экспериментальной ветке добавлен пилот арены 1×1 против Playerbot.
+Подробности: [пилот арены](docs/ARENA_1V1_PILOT_RU.md). Игровые проверки ещё не выполнены.
 
 ## Получение сборки
 

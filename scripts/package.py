@@ -36,12 +36,14 @@ def main():
         shutil.copy2(ROOT / path, dist / path)
     copy_tree(ROOT / "docs", dist / "docs")
     copy_tree(ROOT / "scripts", dist / "BuildScripts")
+    copy_tree(ROOT / "patches", dist / "patches")
+    copy_tree(ROOT / "overlays", dist / "overlays")
     shutil.copy2(ROOT / "scripts/configure-local.ps1", server / "configure-local.ps1")
     for exe in ("authserver", "worldserver"):
         (server / f"start-{exe}.bat").write_text(
             f'@echo off\ncd /d "%~dp0"\n{exe}.exe -c configs\\{exe}.conf\npause\n', encoding="ascii")
     summary = {"target": "Windows x64", "status": "compiled; in-game validation pending",
-               "arena_1v1": "not included: Playerbots queue integration unverified",
+               "arena_1v1": "experimental unrated Playerbot bridge; in-game validation pending",
                "new_races": False}
     (dist / "BUILD_STATUS.json").write_text(json.dumps(summary, indent=2) + "\n")
 

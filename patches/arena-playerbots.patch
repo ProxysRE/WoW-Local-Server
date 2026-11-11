@@ -1,0 +1,170 @@
+diff --git a/src/1v1_loader.cpp b/src/1v1_loader.cpp
+index 280f178..1c20a11 100644
+--- a/src/1v1_loader.cpp
++++ b/src/1v1_loader.cpp
+@@ -1,8 +1,10 @@
++void AddSC_playerbots_1v1();
+ void AddSC_npc_1v1arena();
+ void AddSC_arena1v1_commandscript();
+ 
+ void Addmod_1v1_arenaScripts()
+ {
+     AddSC_npc_1v1arena();
++    AddSC_playerbots_1v1();
+     AddSC_arena1v1_commandscript();
+ }
+diff --git a/src/cs_1v1arena.cpp b/src/cs_1v1arena.cpp
+index 5f8939d..f927493 100644
+--- a/src/cs_1v1arena.cpp
++++ b/src/cs_1v1arena.cpp
+@@ -8,6 +8,7 @@
+ #include "CommandScript.h"
+ #include "ArenaTeamMgr.h"
+ #include "npc_1v1arena.h"
++#include "playerbots_1v1.h"
+ 
+ using namespace Acore::ChatCommands;
+ 
+@@ -22,6 +23,7 @@ public:
+         {
+             { "rated",       HandleQueueArena1v1Rated,           SEC_PLAYER,        Console::No },
+             { "unrated",     HandleQueueArena1v1UnRated,         SEC_PLAYER,        Console::No },
++            { "cancel",      HandleCancelBot1v1,                SEC_PLAYER,        Console::No },
+             { "stats",       HandleArena1v1Stats,                SEC_PLAYER,        Console::No },
+         };
+ 
+@@ -33,6 +35,13 @@ public:
+         return commandTable;
+     }
+ 
++    static bool HandleCancelBot1v1(ChatHandler* handler, const char* /*args*/)
++    {
++        if (Player* player = handler->GetSession()->GetPlayer())
++            CancelArenaBotOpponent(player->GetGUID());
++        return true;
++    }
++
+     static bool HandleQueueArena1v1Rated(ChatHandler* handler, const char* args)
+     {
+         return HandleQueueArena1v1(handler, args, true);
+@@ -87,7 +96,11 @@ public:
+             return false;
+         }
+ 
+-        npc_1v1arena Command1v1;
++        if (isRated && ArenaBotBridgeEnabled())
++        {
++            handler->SendSysMessage("Playerbot 1v1 pilot supports unrated matches only.");
++            return true;
++        }
+         uint32 arenaSlot = sConfigMgr->GetOption<uint32>("Arena1v1.ArenaSlotID", 3);
+ 
+         if (isRated)
+@@ -102,7 +115,7 @@ public:
+                     return false;
+                 }
+ 
+-                if (!Command1v1.CreateArenateam(player, nullptr))
++                if (!npc_1v1arena::CreateArenateam(player, nullptr))
+                     return false;
+ 
+                 player->ModifyMoney(-int32(cost));
+@@ -112,9 +125,12 @@ public:
+             }
+         }
+ 
+-        if (Command1v1.JoinQueueArena(player, nullptr, isRated))
++        if (npc_1v1arena::JoinQueueArena(player, nullptr, isRated))
+         {
+-            handler->PSendSysMessage("You have joined the solo 1v1 arena queue {}.", isRated ? "Rated" : "UnRated");
++            if (ArenaBotBridgeEnabled())
++                handler->SendSysMessage("1v1: opponent search requested. Use .q1v1 cancel to cancel.");
++            else
++                handler->PSendSysMessage("You have joined the solo 1v1 arena queue {}.", isRated ? "Rated" : "UnRated");
+         }
+ 
+         return true;
+diff --git a/src/npc_1v1arena.h b/src/npc_1v1arena.h
+index 7674e63..b91c716 100644
+--- a/src/npc_1v1arena.h
++++ b/src/npc_1v1arena.h
+@@ -8,8 +8,8 @@ public:
+ 
+     bool OnGossipHello(Player* player, Creature* creature) override;
+     bool OnGossipSelect(Player* player, Creature* creature, uint32 /*sender*/, uint32 action) override;
+-    bool JoinQueueArena(Player* player, Creature* /* me */, bool isRated);
+-    bool CreateArenateam(Player* player, Creature* /* me */);
++    static bool JoinQueueArena(Player* player, Creature* /* me */, bool isRated, bool requestBot = true);
++    static bool CreateArenateam(Player* player, Creature* /* me */);
+ private:
+     bool Arena1v1CheckTalents(Player* player);
+ };
+diff --git a/src/npc_arena1v1.cpp b/src/npc_arena1v1.cpp
+index 057cdf6..8d08a89 100644
+--- a/src/npc_arena1v1.cpp
++++ b/src/npc_arena1v1.cpp
+@@ -22,6 +22,7 @@
+ #include "SharedDefines.h"
+ #include "Chat.h"
+ #include "npc_1v1arena.h"
++#include "playerbots_1v1.h"
+ 
+ #define NPC_TEXT_ENTRY_1v1 999992
+ 
+@@ -145,6 +146,17 @@ bool npc_1v1arena::OnGossipHello(Player* player, Creature* creature)
+         return true;
+     }
+ 
++    if (ArenaBotBridgeEnabled())
++    {
++        if (!player->InBattlegroundQueueForBattlegroundQueueType(bgQueueTypeId))
++            AddGossipItemFor(player, GOSSIP_ICON_VENDOR, "1v1 against a Playerbot (unrated)", GOSSIP_SENDER_MAIN,
++                NPC_ARENA_1V1_ACTION_JOIN_QUEUE_ARENA_UNRATED);
++        AddGossipItemFor(player, GOSSIP_ICON_CHAT, "Cancel Playerbot 1v1 request", GOSSIP_SENDER_MAIN,
++            NPC_ARENA_1V1_ACTION_LEAVE_QUEUE);
++        SendGossipMenuFor(player, 68, creature);
++        return true;
++    }
++
+     if (player->InBattlegroundQueueForBattlegroundQueueType(bgQueueTypeId))
+         AddGossipItemFor(player, GOSSIP_ICON_DOT, "|TInterface/ICONS/Achievement_Arena_2v2_7:30:30:-20:0|t Queue leave 1v1 Arena", GOSSIP_SENDER_MAIN, NPC_ARENA_1V1_ACTION_LEAVE_QUEUE, "Are you sure?", 0, false);
+     else
+@@ -243,6 +255,12 @@ bool npc_1v1arena::OnGossipSelect(Player* player, Creature* creature, uint32 /*s
+ 
+         case NPC_ARENA_1V1_ACTION_LEAVE_QUEUE:
+         {
++            if (ArenaBotBridgeEnabled())
++            {
++                CancelArenaBotOpponent(player->GetGUID());
++                CloseGossipMenuFor(player);
++                return true;
++            }
+             uint8 arenaType = ARENA_TYPE_1V1;
+ 
+             if (!player->InBattlegroundQueueForBattlegroundQueueType(bgQueueTypeId))
+@@ -309,7 +327,7 @@ bool npc_1v1arena::OnGossipSelect(Player* player, Creature* creature, uint32 /*s
+     return true;
+ }
+ 
+-bool npc_1v1arena::JoinQueueArena(Player* player, Creature* /* me */, bool isRated)
++bool npc_1v1arena::JoinQueueArena(Player* player, Creature* /* me */, bool isRated, bool requestBot)
+ {
+     if (!player)
+         return false;
+@@ -317,6 +335,16 @@ bool npc_1v1arena::JoinQueueArena(Player* player, Creature* /* me */, bool isRat
+     if (sConfigMgr->GetOption<uint32>("Arena1v1.MinLevel", 80) > player->GetLevel())
+         return false;
+ 
++    if (requestBot && ArenaBotBridgeEnabled())
++    {
++        if (isRated)
++        {
++            ChatHandler(player->GetSession()).SendSysMessage("Playerbot 1v1 pilot supports unrated matches only.");
++            return false;
++        }
++        return RequestArenaBotOpponent(player->GetGUID());
++    }
++
+     uint8 arenatype = ARENA_TYPE_1V1;
+     uint32 arenaRating = 0;
+     uint32 matchmakerRating = 0;

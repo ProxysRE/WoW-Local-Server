@@ -41,5 +41,10 @@ if (-not (Test-Path $botConfig)) { throw "Missing $botConfig" }
 Set-ConfValue $botConfig PlayerbotsDatabaseInfo ('"' + $dbPrefix + 'acore_playerbots"')
 Set-ConfValue $botConfig Playerbots.MinRandomBots "$Bots"
 Set-ConfValue $botConfig Playerbots.MaxRandomBots "$Bots"
+$arenaConfig = 'configs/modules/1v1arena.conf'
+if (Test-Path $arenaConfig) {
+    Set-ConfValue $arenaConfig Arena1v1.Playerbots.Enable '1'
+    Set-ConfValue $arenaConfig Arena1v1.Playerbots.MaxItemLevelGap '15'
+}
 New-Item -ItemType Directory -Force Data | Out-Null
 Write-Host 'Configuration prepared. Read docs/SETUP_RU.md before first startup.'

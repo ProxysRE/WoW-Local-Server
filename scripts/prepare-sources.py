@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import re
 import subprocess
+import shutil
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -57,6 +58,18 @@ def main():
         actual = subprocess.check_output(["git", "-C", str(target), "rev-parse", "HEAD"], text=True).strip()
         if actual != sha:
             raise RuntimeError(f"Wrong source revision for {entry['name']}")
+    arena = ROOT / "core/modules/mod-1v1-arena"
+    subprocess.run(["git", "-C", str(arena), "apply", "--check",
+                    str(ROOT / "patches/arena-playerbots.patch")], check=True)
+    subprocess.run(["git", "-C", str(arena), "apply",
+                    str(ROOT / "patches/arena-playerbots.patch")], check=True)
+    shutil.copytree(ROOT / "overlays/mod-1v1-arena", arena, dirs_exist_ok=True)
+    config = arena / "conf/1v1arena.conf.dist"
+    with config.open("a", encoding="utf-8") as output:
+        output.write('\n# Local Playerbot opponent bridge: unrated only.\n'
+                     'Arena1v1.Playerbots.Enable = 0\n'
+                     '# Maximum difference in average equipped item level.\n'
+                     'Arena1v1.Playerbots.MaxItemLevelGap = 15\n')
     print(prepare_teleporter())
 
 
