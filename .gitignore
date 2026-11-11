@@ -1,0 +1,6 @@
+/core
+/dependencies
+/build
+/dist
+/out
+__pycache__/

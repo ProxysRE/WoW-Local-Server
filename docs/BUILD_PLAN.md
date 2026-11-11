@@ -1,35 +1,38 @@
-# План сборки WoW 3.3.5a
+# Состав сборки WoW 3.3.5a
 
-Дата выбора: 2026-11-11.
-Цель: локальный сервер Windows x64, сборка через GitHub Actions.
+Выбор пользователя: 11 ноября 2026 года. Windows x64, клиент 3.3.5a build 12340.
 
-## Основа
+| Компонент | Состояние |
+|---|---|
+| AzerothCore / Playerbot branch | Основа |
+| mod-playerbots / master | Включён в сборочный рецепт |
+| mod-ah-bot | Включён в сборочный рецепт |
+| mod-reforging | Выбран пользователем |
+| sql-npc-teleporter | Выбран; SQL адаптируется к текущей схеме базы |
+| mod-transmog | Выбран пользователем |
+| mod-individual-progression | Выбран пользователем |
 
-- AzerothCore: https://github.com/mod-playerbots/azerothcore-wotlk, ветка Playerbot.
-- Playerbots: https://github.com/mod-playerbots/mod-playerbots.
-- AHBot: https://github.com/azerothcore/mod-ah-bot.
+Исходные ревизии зафиксированы в sources.lock.json.
 
-## Выбраны пользователем
+## Исключены
 
-- Reforging: https://github.com/silviu20092/mod-reforging.
-- NPC Teleporter: конкретная реализация ещё выбирается; должна учитывать ограничения Individual Progression.
-- Transmog: https://github.com/azerothcore/mod-transmog.
-- Individual Progression: https://github.com/ZhengPeiRu21/mod-individual-progression.
+- Новые расы и связанные клиентские патчи — пользователь отказался от усложнения.
+- Item Upgrade, AutoBalance, дополнительные сервисные NPC — не включены.
+- Dungeon Clear предложен, но не подтверждён в окончательном списке.
 
-## Предложены, окончательное включение не зафиксировано
+## Арена 1×1
 
-- Dungeon Clear: https://github.com/jrad7/mod-dungeon-clear.
-- Клиентские аддоны MultiBot и Dungeon Clear.
+Запрошена при условии совместимости с Playerbots. У azerothcore/mod-1v1-arena
+есть очередь 1×1, но штатные BattleGroundJoinAction и RandomPlayerbotMgr
+в выбранной ревизии Playerbots обрабатывают форматы 2×2, 3×3 и 5×5.
+Готовой интеграции автоматического заполнения 1×1 не подтверждено.
+Поэтому арена 1×1 не добавлена в первый рабочий рецепт.
+Совместная компиляция двух модулей сама по себе не доказывает участие ботов в очереди.
 
-## Дополнительные расы: исследование, не установка
+## Совместимость и статус
 
-- Worgoblin: https://github.com/Helias/mod-worgoblin (воргены и гоблины).
-- High Elf: https://github.com/abracadaniel22/azerothcore-highelf (заявлена поддержка Playerbots; имеется патч Individual Progression).
-- WHE: https://github.com/Medviten/WHE-32-bit (экспериментальная интеграция нескольких рас, правок клиента, DBC и ядра).
-- Пользователь пока попросил проверить наличие таких проектов, а не устанавливать расы.
-
-## Проверки до готового выпуска
-
-Совместимость выбранных ревизий пока не проверена. Компиляция не запущена.
-Нужны фиксация ревизий, Windows workflow, компиляция, проверка запуска/SQL и упаковка.
-Особое внимание: перековка и изменения предметов Individual Progression; телепортер и этапы доступа; для новых рас — совпадение клиентских и серверных DBC, создание персонажа, стартовые данные и Playerbots.
+Windows workflow компилирует ядро, выбранные C++ модули и инструменты извлечения карт.
+Успешная компиляция и проверка --version не означают проверку всех SQL и механик в игре.
+Individual Progression имеет OnPlayerBeforeTeleport с ограничениями доступа.
+Перековку вместе с изменениями вещей Individual Progression нужно проверить в игре.
+Первый запуск проводится в новой установке, отдельно от прежней базы.

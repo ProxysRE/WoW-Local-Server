@@ -1,0 +1,55 @@
+{
+  "target": "Windows x64 / WoW 3.3.5a (12340)",
+  "new_races": false,
+  "sources": [
+    {
+      "name": "core",
+      "repository": "mod-playerbots/azerothcore-wotlk",
+      "branch": "Playerbot",
+      "commit": "e7e2e288e7d9ec30e2dfe6f417178a95986fcbb2",
+      "path": "core"
+    },
+    {
+      "name": "mod-playerbots",
+      "repository": "mod-playerbots/mod-playerbots",
+      "branch": "master",
+      "commit": "405f81196161017eebae3ee7a612d786a3ed2a9d",
+      "path": "core/modules/mod-playerbots"
+    },
+    {
+      "name": "mod-ah-bot",
+      "repository": "azerothcore/mod-ah-bot",
+      "branch": "master",
+      "commit": "c11d8318cbd8714a9980f9464f78e07d3d48a70a",
+      "path": "core/modules/mod-ah-bot"
+    },
+    {
+      "name": "mod-reforging",
+      "repository": "silviu20092/mod-reforging",
+      "branch": "master",
+      "commit": "b7c1e2dfb09af2c28444d2b96805a65801a77ff7",
+      "path": "core/modules/mod-reforging"
+    },
+    {
+      "name": "mod-transmog",
+      "repository": "azerothcore/mod-transmog",
+      "branch": "master",
+      "commit": "d309745c9151ff2ea4202204c1efa991848414bf",
+      "path": "core/modules/mod-transmog"
+    },
+    {
+      "name": "mod-individual-progression",
+      "repository": "ZhengPeiRu21/mod-individual-progression",
+      "branch": "master",
+      "commit": "e1795553d381e561ab5f37585566c22e23cdff73",
+      "path": "core/modules/mod-individual-progression"
+    },
+    {
+      "name": "sql-npc-teleporter",
+      "repository": "Zoidwaffle/sql-npc-teleporter",
+      "branch": "master",
+      "commit": "38078d1d9c21b7d21d8c5c5ef9d5fc8617dd5fb7",
+      "path": "dependencies/sql-npc-teleporter"
+    }
+  ]
+}
