@@ -21,9 +21,8 @@ def prepare_teleporter(root=ROOT):
     sql, count = re.subn(pattern, replacement, sql, count=1)
     if count != 1:
         raise RuntimeError("Teleporter template layout changed; review adaptation")
-    sql = sql.replace("DELETE from creature WHERE id = @ENTRY;",
-                      "DELETE FROM creature WHERE id1 = @ENTRY;")
-    sql = sql.replace("INSERT INTO creature (id, map,", "INSERT INTO creature (id1, map,")
+    # Custom SQL runs after core updates. 2026_06_16_00 renames creature.id1
+    # to id, so preserve the upstream teleporter's id column here.
     # Avoid removing unrelated gameobjects in an existing world.
     sql = sql.replace("DELETE from gameobject WHERE ID = @RUNE AND guid >= 200000;",
                       "-- Decorative rune deletion omitted in the local-server adaptation.")
