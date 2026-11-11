@@ -59,10 +59,10 @@ def main():
         if actual != sha:
             raise RuntimeError(f"Wrong source revision for {entry['name']}")
     arena = ROOT / "core/modules/mod-1v1-arena"
-    subprocess.run(["git", "-C", str(arena), "apply", "--check",
-                    str(ROOT / "patches/arena-playerbots.patch")], check=True)
-    subprocess.run(["git", "-C", str(arena), "apply",
-                    str(ROOT / "patches/arena-playerbots.patch")], check=True)
+    # Normalize the patch even when a Windows checkout used CRLF.
+    patch = (ROOT / "patches/arena-playerbots.patch").read_text(encoding="utf-8").encode("utf-8")
+    subprocess.run(["git", "-C", str(arena), "apply", "--check", "-"], input=patch, check=True)
+    subprocess.run(["git", "-C", str(arena), "apply", "-"], input=patch, check=True)
     shutil.copytree(ROOT / "overlays/mod-1v1-arena", arena, dirs_exist_ok=True)
     config = arena / "conf/1v1arena.conf.dist"
     with config.open("a", encoding="utf-8") as output:

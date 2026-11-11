@@ -62,6 +62,11 @@ jobs:
             -DAPPS_BUILD=all -DTOOLS_BUILD=all -DSCRIPTS=static -DMODULES=static `
             -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release
           if ($LASTEXITCODE -ne 0) { throw 'CMake configuration failed' }
+      - name: Compile module integration first
+        shell: pwsh
+        run: |
+          cmake --build build --target modules --config Release --parallel 4
+          if ($LASTEXITCODE -ne 0) { throw 'Module integration compilation failed' }
       - name: Compile server and extraction tools
         shell: pwsh
         run: |
