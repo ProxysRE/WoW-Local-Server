@@ -1,0 +1,4 @@
+# Grant apprentice professions and basic tools at a human player's first login.
+# Requires MaxPrimaryTradeSkill >= 11 in worldserver.conf.
+# Headless bot sessions are always excluded.
+StarterProfessions.Enable = 1

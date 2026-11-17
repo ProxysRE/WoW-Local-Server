@@ -82,6 +82,8 @@ def main():
                      'Arena1v1.Playerbots.Enable = 0\n'
                      '# Maximum difference in average equipped item level.\n'
                      'Arena1v1.Playerbots.MaxItemLevelGap = 15\n')
+    shutil.copytree(ROOT / "overlays/mod-starter-professions",
+                    ROOT / "core/modules/mod-starter-professions", dirs_exist_ok=True)
     print(prepare_teleporter())
 
 
