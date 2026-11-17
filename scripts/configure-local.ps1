@@ -36,6 +36,7 @@ Set-ConfValue configs/worldserver.conf EnablePlayerSettings '1'
 Set-ConfValue configs/worldserver.conf DBC.EnforceItemAttributes '0'
 Set-ConfValue configs/worldserver.conf MapUpdate.Threads '4'
 Set-ConfValue configs/worldserver.conf RealmID '1'
+Set-ConfValue configs/worldserver.conf MaxPrimaryTradeSkill '11'
 $botConfig = 'configs/modules/playerbots.conf'
 if (-not (Test-Path $botConfig)) { throw "Missing $botConfig" }
 Set-ConfValue $botConfig PlayerbotsDatabaseInfo ('"' + $dbPrefix + 'acore_playerbots"')

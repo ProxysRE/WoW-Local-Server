@@ -43,6 +43,7 @@ def main():
         (server / f"start-{exe}.bat").write_text(
             f'@echo off\ncd /d "%~dp0"\n{exe}.exe -c configs\\{exe}.conf\npause\n', encoding="ascii")
     summary = {"target": "Windows x64", "status": "compiled; in-game validation pending",
+               "starter_professions": "first human login: 14 apprentice professions and 4 tools; in-game validation pending",
                "arena_1v1": "experimental unrated Playerbot bridge; in-game validation pending",
                "new_races": False}
     (dist / "BUILD_STATUS.json").write_text(json.dumps(summary, indent=2) + "\n")

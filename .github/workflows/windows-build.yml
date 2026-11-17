@@ -2,7 +2,7 @@ name: Windows server build
 
 on:
   push:
-    branches: [main, feature/arena-1v1-playerbots]
+    branches: [main, feature/arena-1v1-playerbots, feature/starter-professions]
     paths:
       - sources.lock.json
       - scripts/**
@@ -28,6 +28,8 @@ jobs:
         run: |
           g++ -std=c++20 -Wall -Wextra -Werror -Ioverlays/mod-1v1-arena/src tests/arena_bot_policy.cpp -o /tmp/arena-policy
           /tmp/arena-policy
+      - name: Check starter profession grant behavior
+        run: python3 tests/starter_professions_test.py
   build:
     needs: arena-policy
     runs-on: windows-2022
