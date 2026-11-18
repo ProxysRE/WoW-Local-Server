@@ -1,0 +1,21 @@
+[worldserver]
+
+# Crafting only, near a workshop or friendly profession trainer; 0.1 = 10x faster.
+LocalQoL.Craft.Enable = 1
+LocalQoL.Craft.Multiplier = 0.1
+LocalQoL.Craft.MinimumMs = 200
+LocalQoL.Craft.Radius = 25
+# Spell-focus IDs: anvil, loom, forge, cooking fire, alchemy laboratory.
+LocalQoL.Craft.FocusIds = "1 2 3 4 663"
+
+# Sell gray, non-quest items in bags after looting gray items. Never sell equipment/bank.
+# Per character: .qol junk on / .qol junk off
+LocalQoL.Junk.Enable = 1
+LocalQoL.Junk.DefaultOn = 1
+# Space-separated item IDs to preserve.
+LocalQoL.Junk.ExcludedItems = ""
+
+# Opt-in: .qol fish on, then cast your own fishing skill once.
+# Movement/combat/teleport/death/pole removal/cancel stop the current loop.
+LocalQoL.Fish.Enable = 1
+LocalQoL.Fish.RecastDelayMs = 700

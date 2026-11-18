@@ -43,10 +43,19 @@ def main():
         (server / f"start-{exe}.bat").write_text(
             f'@echo off\ncd /d "%~dp0"\n{exe}.exe -c configs\\{exe}.conf\npause\n', encoding="ascii")
     summary = {"target": "Windows x64", "status": "compiled; in-game validation pending",
+               "local_qol": "workshop crafting, gray-item sale and opt-in fishing loop; in-game validation pending",
                "starter_professions": "first human login: 14 apprentice professions and 4 tools; in-game validation pending",
                "arena_1v1": "experimental unrated Playerbot bridge; in-game validation pending",
                "new_races": False}
     (dist / "BUILD_STATUS.json").write_text(json.dumps(summary, indent=2) + "\n")
+    update = dist / "Update_LocalQoL"
+    (update / "Server/configs/modules").mkdir(parents=True)
+    shutil.copy2(server / "worldserver.exe", update / "Server/worldserver.exe")
+    for module, filename in (("mod-local-qol", "local_qol.conf.dist"),
+                             ("mod-starter-professions", "starter_professions.conf.dist")):
+        shutil.copy2(ROOT / "overlays" / module / "conf" / filename,
+                     update / "Server/configs/modules" / filename)
+    shutil.copy2(ROOT / "docs/LOCAL_QOL_RU.md", update / "UPDATE_RU.md")
 
 
 if __name__ == "__main__":

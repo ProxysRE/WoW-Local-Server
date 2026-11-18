@@ -2,7 +2,7 @@ name: Windows server build
 
 on:
   push:
-    branches: [main, feature/arena-1v1-playerbots, feature/starter-professions]
+    branches: [main, feature/arena-1v1-playerbots, feature/starter-professions, feature/local-qol]
     paths:
       - sources.lock.json
       - scripts/**
@@ -30,6 +30,10 @@ jobs:
           /tmp/arena-policy
       - name: Check starter profession grant behavior
         run: python3 tests/starter_professions_test.py
+      - name: Check QoL policy
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror -Ioverlays/mod-local-qol/src tests/local_qol_policy.cpp -o /tmp/local-qol-policy
+          /tmp/local-qol-policy
   build:
     needs: arena-policy
     runs-on: windows-2022
@@ -93,6 +97,13 @@ jobs:
         with:
           name: WoW-Local-Server-Windows-x64-${{ github.run_number }}
           path: dist/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Upload small QoL update
+        uses: actions/upload-artifact@v4
+        with:
+          name: WoW-Local-QoL-Update-x64-${{ github.run_number }}
+          path: dist/Update_LocalQoL/
           if-no-files-found: error
           retention-days: 30
       - name: Upload configure diagnostics on failure
