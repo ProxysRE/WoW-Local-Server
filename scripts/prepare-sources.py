@@ -84,6 +84,11 @@ def main():
                      'Arena1v1.Playerbots.MaxItemLevelGap = 15\n')
     shutil.copytree(ROOT / "overlays/mod-starter-professions",
                     ROOT / "core/modules/mod-starter-professions", dirs_exist_ok=True)
+    patch = (ROOT / "patches/local-qol-cast-time.patch").read_text(encoding="utf-8").encode("utf-8")
+    subprocess.run(["git", "-C", str(ROOT / "core"), "apply", "--check", "-"], input=patch, check=True)
+    subprocess.run(["git", "-C", str(ROOT / "core"), "apply", "-"], input=patch, check=True)
+    shutil.copytree(ROOT / "overlays/mod-local-qol",
+                    ROOT / "core/modules/mod-local-qol", dirs_exist_ok=True)
     print(prepare_teleporter())
 
 
