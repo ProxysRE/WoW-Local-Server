@@ -1,0 +1,341 @@
+diff --git a/src/IndividualProgression.cpp b/src/IndividualProgression.cpp
+index 8655605..70ef5c3 100644
+--- a/src/IndividualProgression.cpp
++++ b/src/IndividualProgression.cpp
+@@ -5,6 +5,19 @@
+ #include "IndividualProgression.h"
+ #include "naxxramas_40.h"
+ #include "ReputationMgr.h"
++#include "DataMap.h"
++#include "TemporaryProgression.h"
++#include "TemporaryQuestRewards.h"
++
++namespace
++{
++constexpr char TemporaryKey[] = "local-ip-temporary-progression";
++struct TemporaryState : DataMap::Base
++{
++    LocalIP::TemporaryProgression selection;
++};
++}
++
+ 
+ IndividualProgression* IndividualProgression::instance()
+ {
+@@ -12,7 +25,56 @@ IndividualProgression* IndividualProgression::instance()
+     return &instance;
+ }
+ 
++bool IndividualProgression::HasTemporaryProgression(Player const* player)
++{
++    auto const* state = player ? player->CustomData.Get<TemporaryState>(TemporaryKey) : nullptr;
++    return state && state->selection.Active();
++}
++
+ uint8 IndividualProgression::GetPlayerProgressionFromQuests(Player* player) const
++{
++    if (!player || !player->IsInWorld())
++        return 0;
++    uint8 stored = GetStoredProgression(player);
++    auto const* state = player ? player->CustomData.Get<TemporaryState>(TemporaryKey) : nullptr;
++    return state ? state->selection.Effective(stored) : stored;
++}
++
++bool IndividualProgression::SetTemporaryProgression(Player* player, uint32 stage)
++{
++    if (!enabled || !player || !player->IsInWorld())
++        return false;
++    auto* state = player->CustomData.GetDefault<TemporaryState>(TemporaryKey);
++    if (!state->selection.Select(stage, GetStoredProgression(player)))
++        return false;
++    auto* view = player->CustomData.GetDefault<TemporaryQuestRewards>(TemporaryQuestRewards::Key);
++    view->first = 66000 + PROGRESSION_MOLTEN_CORE;
++    view->last = 66000 + PROGRESSION_WOTLK_TIER_5;
++    view->completedThrough = 66000 + stage;
++    RefreshTemporaryProgression(player);
++    return true;
++}
++
++void IndividualProgression::ClearTemporaryProgression(Player* player)
++{
++    if (!player)
++        return;
++    player->CustomData.Erase(TemporaryKey);
++    player->CustomData.Erase(TemporaryQuestRewards::Key);
++    RefreshTemporaryProgression(player);
++}
++
++void IndividualProgression::RefreshTemporaryProgression(Player* player)
++{
++    if (!player || !player->IsInWorld())
++        return;
++    // Even with IP disabled, clear a phase saved during an interrupted visit.
++    checkIPPhasing(player, enabled ? player->GetAreaId() : 0);
++    CheckAdjustments(player);
++    player->UpdateObjectVisibility();
++}
++
++uint8 IndividualProgression::GetStoredProgression(Player* player) const
+ {
+     if (!player || !player->IsInWorld())
+         return 0;
+@@ -21,7 +83,7 @@ uint8 IndividualProgression::GetPlayerProgressionFromQuests(Player* player) cons
+     for (uint8 i = PROGRESSION_MOLTEN_CORE; i <= PROGRESSION_WOTLK_TIER_5; ++i)
+     {
+         uint32 PROGRESSION_QUEST = 66000 + i;
+-        if (player->GetQuestStatus(PROGRESSION_QUEST) == QUEST_STATUS_REWARDED)
++        if (player->IsQuestRewarded(PROGRESSION_QUEST))
+             progressionLevel = i;
+     }
+     return progressionLevel;
+@@ -55,6 +117,13 @@ void IndividualProgression::UpdateProgressionState(Player* player, ProgressionSt
+         return;
+ 
+     uint8 currentState = GetPlayerProgressionFromQuests(player);
++    if (HasTemporaryProgression(player))
++    {
++        // Actual quest/boss milestones may advance the visit, never the saved timeline.
++        if (newState > currentState)
++            sIndividualProgression->SetTemporaryProgression(player, newState);
++        return;
++    }
+     if (newState > currentState)
+     {
+         for (uint8 i = currentState; i <= newState; ++i)
+@@ -77,7 +146,7 @@ void IndividualProgression::ForceUpdateProgressionState(Player* player, Progress
+     if (!player || !player->IsInWorld())
+         return;
+ 
+-    if (!newState)
++    if (!newState || HasTemporaryProgression(player))
+         return;
+ 
+     // remove all hidden progression quests first
+@@ -471,8 +540,8 @@ void IndividualProgression::SyncBotsProgressionToLeader(Group* group)
+         return;
+ 
+     Player* leader = ObjectAccessor::FindPlayer(leaderGuid);
+-    if (!leader || !isNormalAccount(leader))
+-        return;
++    if (!leader || !isNormalAccount(leader) || HasTemporaryProgression(leader))
++        return; // A visitor must not overwrite companions' saved progression.
+ 
+     uint8 refProgress = GetPlayerProgressionFromQuests(leader);
+ 
+@@ -794,8 +863,8 @@ void IndividualProgression::checkIPPhasing(Player* player, uint32 newArea)
+ 
+ void IndividualProgression::checkIPProgression(Player* killer)
+ {
+-    if (!enabled || disableDefaultProgression)
+-        return;
++    if (!enabled || disableDefaultProgression || HasTemporaryProgression(killer))
++        return; // Old achievements must not fast-forward the temporary visit.
+ 
+     if (!killer || !killer->IsInWorld())
+         return;
+@@ -961,7 +1030,7 @@ int8 IndividualProgression::GetRecordedVanillaPvpRank(Player* player) const
+ // achievement is never revoked. Keep that order if this is ever called from somewhere else.
+ void IndividualProgression::CleanUpVanillaPvpTitles(Player* player)
+ {
+-    if (!player || !player->IsInWorld())
++    if (!player || !player->IsInWorld() || HasTemporaryProgression(player))
+         return;
+ 
+     TeamId teamId = player->GetTeamId(true);
+@@ -1007,7 +1076,7 @@ void IndividualProgression::CleanUpVanillaPvpTitles(Player* player)
+ 
+ void IndividualProgression::AwardEarnedVanillaPvpTitles(Player* player)
+ {
+-    if (!player || !player->IsInWorld())
++    if (!player || !player->IsInWorld() || HasTemporaryProgression(player))
+         return;
+ 
+     // New ranks stop being earned at the Dark Portal unless the config extends it past Vanilla.
+diff --git a/src/IndividualProgression.h b/src/IndividualProgression.h
+index 5108963..f3f3bef 100644
+--- a/src/IndividualProgression.h
++++ b/src/IndividualProgression.h
+@@ -416,6 +416,11 @@ public:
+ 
+     // progression is derived from rewarded hidden quests (IDs 66000 + progression)
+     uint8 GetPlayerProgressionFromQuests(Player* player) const;
++    uint8 GetStoredProgression(Player* player) const;
++    static bool HasTemporaryProgression(Player const* player);
++    bool SetTemporaryProgression(Player* player, uint32 stage);
++    void ClearTemporaryProgression(Player* player);
++    void RefreshTemporaryProgression(Player* player);
+ 
+     bool hasPassedProgression(Player* player, ProgressionState state) const;
+     static bool isBeforeProgression(Player* player, ProgressionState state) ;
+diff --git a/src/IndividualProgressionPlayer.cpp b/src/IndividualProgressionPlayer.cpp
+index e3c5f17..a326809 100644
+--- a/src/IndividualProgressionPlayer.cpp
++++ b/src/IndividualProgressionPlayer.cpp
+@@ -19,6 +19,7 @@ public:
+ 
+     void OnPlayerLogin(Player* player) override
+     {
++        sIndividualProgression->ClearTemporaryProgression(player);
+         if (!sIndividualProgression->enabled)
+             return;
+ 
+@@ -57,7 +58,7 @@ public:
+             sIndividualProgression->checkIPProgression(player);
+         }
+ 
+-        sIndividualProgression->CheckAdjustments(player);
++        sIndividualProgression->RefreshTemporaryProgression(player);
+ 
+         if (sIndividualProgression->enabled)
+         {
+@@ -68,6 +69,12 @@ public:
+         }
+     }
+ 
++    void OnPlayerBeforeLogout(Player* player) override
++    {
++        // Restore normal phases before the core saves logout auras.
++        sIndividualProgression->ClearTemporaryProgression(player);
++    }
++
+     void OnPlayerEquip(Player* player, Item* /*it*/, uint8 /*bag*/, uint8 /*slot*/, bool /*update*/) override
+     {
+         if (!player || !player->IsInWorld())
+@@ -1008,6 +1015,9 @@ public:
+ 
+         if (!sIndividualProgression->isNormalAccount(player)) // player is either a RNDbot or has an excluded account
+         {
++            // Don't copy a leader's temporary era into another character's database.
++            if (sIndividualProgression->HasTemporaryProgression(groupLeader))
++                return !sIndividualProgression->enforceGroupRules || currentState == groupLeaderState;
+             if (sIndividualProgression->enforceGroupRules)
+             {
+                 if (groupLeaderState < PROGRESSION_PRE_TBC) // Group leader is in Vanilla
+diff --git a/src/cs_individualProgression.cpp b/src/cs_individualProgression.cpp
+index 04c15a3..eb00d45 100644
+--- a/src/cs_individualProgression.cpp
++++ b/src/cs_individualProgression.cpp
+@@ -13,8 +13,15 @@ public:
+ 
+     ChatCommandTable GetCommands() const override
+     {
++        static ChatCommandTable tempTable =
++        {
++            { "off",    HandleTemporaryOff,    SEC_GAMEMASTER, Console::No },
++            { "status", HandleTemporaryStatus, SEC_GAMEMASTER, Console::No },
++            { "",       HandleTemporaryStart,  SEC_GAMEMASTER, Console::No },
++        };
+         static ChatCommandTable ipTable =
+         {
++            { "temp", tempTable },
+             { "get",    HandleGetIndividualProgressionCommand,    SEC_GAMEMASTER,    Console::Yes },
+             { "set",    HandleSetIndividualProgressionCommand,    SEC_GAMEMASTER,    Console::Yes },
+             { "tele",   HandleTeleIndividualProgressionCommand,   SEC_GAMEMASTER,    Console::Yes },
+@@ -32,6 +39,74 @@ public:
+         return commandTable;
+     }
+ 
++    static bool TemporarySwitchAllowed(ChatHandler* handler)
++    {
++        Player* player = handler->GetPlayer();
++        if (!sIndividualProgression->enabled || !player || !player->IsInWorld())
++        {
++            handler->SendSysMessage("Individual Progression must be enabled.");
++            return false;
++        }
++        if (!player->IsAlive() || player->IsInCombat() || player->IsInFlight() ||
++            player->IsBeingTeleported() || player->InBattleground() ||
++            player->GetMap()->IsDungeon())
++        {
++            handler->SendSysMessage("Change temporary progression while alive, out of combat, on the open-world ground.");
++            return false;
++        }
++        return true;
++    }
++
++    static bool HandleTemporaryStatus(ChatHandler* handler)
++    {
++        Player* player = handler->GetPlayer();
++        handler->PSendSysMessage("Temporary progression: {}. Effective stage: {}. Saved stage: {}. Use .ip temp <0-18 except 11> or .ip temp off.",
++            sIndividualProgression->HasTemporaryProgression(player) ? "on" : "off",
++            sIndividualProgression->GetPlayerProgressionFromQuests(player),
++            sIndividualProgression->GetStoredProgression(player));
++        return true;
++    }
++
++    static bool HandleTemporaryStart(ChatHandler* handler, Optional<uint32> stage)
++    {
++        if (!stage)
++            return HandleTemporaryStatus(handler);
++        if (!TemporarySwitchAllowed(handler))
++            return false;
++        Player* player = handler->GetPlayer();
++        if (!sIndividualProgression->isNormalAccount(player))
++        {
++            handler->SendSysMessage("Temporary visits require a normal player account, not a bot/excluded account.");
++            return false;
++        }
++        if (sIndividualProgression->progressionLimit && *stage > uint32(sIndividualProgression->progressionLimit))
++        {
++            handler->SendSysMessage("This stage exceeds the server ProgressionLimit.");
++            return false;
++        }
++        if (!sIndividualProgression->SetTemporaryProgression(player, *stage))
++        {
++            handler->SendSysMessage("Invalid stage: use 0-18 except 11, no higher than your saved stage.");
++            return false;
++        }
++        HandleTemporaryStatus(handler);
++        handler->SendSysMessage("Saved progression is unchanged. The visit ends on logout. Disable GM mode to see normal event phasing.");
++        return true;
++    }
++
++    static bool HandleTemporaryOff(ChatHandler* handler)
++    {
++        // Always allow restoration even if IP was disabled by a config reload.
++        Player* player = handler->GetPlayer();
++        if (player->IsInCombat() || player->IsInFlight() || player->IsBeingTeleported() || player->GetMap()->IsDungeon())
++        {
++            handler->SendSysMessage("Leave combat, taxi flight and instances before restoring the timeline, or log out.");
++            return false;
++        }
++        sIndividualProgression->ClearTemporaryProgression(player);
++        return HandleTemporaryStatus(handler);
++    }
++
+     static void CheckProgressionAchievements(Player* target, uint8 currentState, uint32 progressionLevel)
+     {
+         if (!currentState || (!progressionLevel && progressionLevel != 0) || !target || !target->IsInWorld())
+@@ -85,6 +160,8 @@ public:
+         }
+ 
+         uint32 progressionLevel = sIndividualProgression->GetPlayerProgressionFromQuests(target);
++        if (sIndividualProgression->HasTemporaryProgression(target))
++            handler->PSendSysMessage("Temporary visit active; saved stage = {}.", sIndividualProgression->GetStoredProgression(target));
+ 
+         handler->PSendSysMessage("Progression Level for |cff00ffff{}|r = |cff00ffff{}|r", playername, progressionLevel);
+         return true;
+@@ -104,6 +181,11 @@ public:
+         player = PlayerIdentifier::FromTargetOrSelf(handler);
+         Player* target = player->GetConnectedPlayer();
+         std::string playername = target->GetName();
++        if (sIndividualProgression->HasTemporaryProgression(target))
++        {
++            handler->SendSysMessage("End the temporary visit before using .ip set.");
++            return false;
++        }
+         uint8 currentState = sIndividualProgression->GetPlayerProgressionFromQuests(target);
+         uint32 currentArea = target->GetAreaId();
+ 
+@@ -129,6 +211,11 @@ public:
+             return false;
+         }
+ 
++        if (sIndividualProgression->HasTemporaryProgression(player))
++        {
++            handler->SendSysMessage("The temporary era cannot be written to bots with .ip setbot.");
++            return false;
++        }
+         Group* group = player->GetGroup();
+ 
+         std::string playername = player->GetName();

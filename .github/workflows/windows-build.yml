@@ -2,7 +2,7 @@ name: Windows server build
 
 on:
   push:
-    branches: [main, feature/arena-1v1-playerbots, feature/starter-professions, feature/local-qol]
+    branches: [main, feature/arena-1v1-playerbots, feature/starter-professions, feature/local-qol, feature/temporary-progression]
     paths:
       - sources.lock.json
       - scripts/**
@@ -34,6 +34,12 @@ jobs:
         run: |
           g++ -std=c++20 -Wall -Wextra -Werror -Ioverlays/mod-local-qol/src tests/local_qol_policy.cpp -o /tmp/local-qol-policy
           /tmp/local-qol-policy
+      - name: Check temporary progression selection
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror -Ioverlays/mod-individual-progression/src tests/temporary_progression_policy.cpp -o /tmp/ip-temp-policy
+          /tmp/ip-temp-policy
+      - name: Verify temporary progression storage isolation
+        run: python3 tests/temporary_progression_integration_test.py
   build:
     needs: arena-policy
     runs-on: windows-2022
@@ -97,6 +103,13 @@ jobs:
         with:
           name: WoW-Local-Server-Windows-x64-${{ github.run_number }}
           path: dist/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Upload temporary progression update
+        uses: actions/upload-artifact@v4
+        with:
+          name: WoW-Temporary-Progression-Update-x64-${{ github.run_number }}
+          path: dist/Update_TemporaryProgression/
           if-no-files-found: error
           retention-days: 30
       - name: Upload small QoL update
