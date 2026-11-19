@@ -89,6 +89,15 @@ def main():
     subprocess.run(["git", "-C", str(ROOT / "core"), "apply", "-"], input=patch, check=True)
     shutil.copytree(ROOT / "overlays/mod-local-qol",
                     ROOT / "core/modules/mod-local-qol", dirs_exist_ok=True)
+    patch = (ROOT / "patches/temporary-quest-rewards.patch").read_text(encoding="utf-8").encode("utf-8")
+    subprocess.run(["git", "-C", str(ROOT / "core"), "apply", "--check", "-"], input=patch, check=True)
+    subprocess.run(["git", "-C", str(ROOT / "core"), "apply", "-"], input=patch, check=True)
+    shutil.copytree(ROOT / "overlays/core", ROOT / "core", dirs_exist_ok=True)
+    progression = ROOT / "core/modules/mod-individual-progression"
+    patch = (ROOT / "patches/temporary-progression.patch").read_text(encoding="utf-8").encode("utf-8")
+    subprocess.run(["git", "-C", str(progression), "apply", "--check", "-"], input=patch, check=True)
+    subprocess.run(["git", "-C", str(progression), "apply", "-"], input=patch, check=True)
+    shutil.copytree(ROOT / "overlays/mod-individual-progression", progression, dirs_exist_ok=True)
     print(prepare_teleporter())
 
 
