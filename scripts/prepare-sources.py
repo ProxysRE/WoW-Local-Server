@@ -9,6 +9,19 @@ import shutil
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def prepare_autobalance(root=ROOT):
+    config = root / "core/modules/mod-autobalance/conf/AutoBalance.conf.dist"
+    content = config.read_text(encoding="utf-8")
+    profile = json.loads((root / "profiles/autobalance.json").read_text(encoding="utf-8"))
+    for key, value in profile.items():
+        pattern = r"(?m)^" + re.escape(key) + r"\s*=.*$"
+        content, count = re.subn(pattern, lambda match: f"{key} = {value}", content)
+        if count != 1:
+            raise RuntimeError(f"AutoBalance option missing or duplicated: {key}")
+    config.write_text(content, encoding="utf-8", newline="\n")
+    return config
+
+
 def prepare_teleporter(root=ROOT):
     source = root / "dependencies/sql-npc-teleporter/data/sql/db-world/teleporter_capital.dist"
     sql = source.read_text(encoding="utf-8")
@@ -102,6 +115,7 @@ def main():
     patch = (ROOT / "patches/playerbots-movement-loot.patch").read_text(encoding="utf-8").encode("utf-8")
     subprocess.run(["git", "-C", str(bots), "apply", "--check", "-"], input=patch, check=True)
     subprocess.run(["git", "-C", str(bots), "apply", "-"], input=patch, check=True)
+    print(prepare_autobalance())
     print(prepare_teleporter())
 
 
