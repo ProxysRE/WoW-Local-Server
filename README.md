@@ -2,7 +2,7 @@
 
 AzerothCore 3.3.5a под Windows x64 для локальной игры с Playerbots.
 
-**Состав:** Playerbots, AHBot, Reforging, NPC Teleporter, Transmog, Individual Progression.
+**Состав:** Playerbots, AHBot, Reforging, NPC Teleporter, Transmog, Individual Progression, AutoBalance.
 Новых рас нет. В экспериментальной ветке добавлен пилот арены 1×1 против Playerbot.
 Подробности: [пилот арены](docs/ARENA_1V1_PILOT_RU.md). Игровые проверки ещё не выполнены.
 
@@ -14,6 +14,13 @@ AzerothCore 3.3.5a под Windows x64 для локальной игры с Play
 мастерских, продажа серой добычи и авторыбалка по выбору игрока.
 [Установка небольшого обновления и команды](docs/LOCAL_QOL_RU.md).
 SQL-миграции для этих функций не нужны; игровые проверки пока не выполнены.
+
+В ветке `feature/autobalance` добавлен AutoBalance для подземелий и рейдов:
+учитываются персонажи внутри инстанса, включая Playerbots, сохраняются уровни
+противников и стандартные правила опыта/денег. Включены исправления сбора ресурсов
+и такси из `fix/playerbots-movement-loot` и временная прогрессия.
+[Настройки, установка и проверка AutoBalance](docs/AUTOBALANCE_RU.md).
+Небольшое обновление — `WoW-AutoBalance-Update-x64-N`: EXE и новый конфиг обязательны.
 
 ## Получение сборки
 
@@ -37,7 +44,7 @@ Workflow проверяет компиляцию и загрузку обоих 
 ## Авторы
 
 Ядро — AzerothCore / команда mod-playerbots; Playerbots — команда mod-playerbots;
-AHBot и Transmog — авторы проектов AzerothCore; Reforging — silviu20092;
+AHBot, Transmog и AutoBalance — авторы проектов AzerothCore; Reforging — silviu20092;
 Individual Progression — ZhengPeiRu21 и соавторы;
 телепортер — Zoidwaffle, на основе работы Rochet2.
 Скрипт установки зависимостей адаптирован из Windows workflow закреплённого форка ядра.
