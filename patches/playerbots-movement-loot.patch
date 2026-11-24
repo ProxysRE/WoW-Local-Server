@@ -1,0 +1,292 @@
+diff --git a/src/Ai/Base/Actions/CheckMountStateAction.cpp b/src/Ai/Base/Actions/CheckMountStateAction.cpp
+index cacc7518..518c0de1 100644
+--- a/src/Ai/Base/Actions/CheckMountStateAction.cpp
++++ b/src/Ai/Base/Actions/CheckMountStateAction.cpp
+@@ -5,17 +5,19 @@
+  */
+ 
+ #include "CheckMountStateAction.h"
+-#include "PlayerbotsDatabase.h"
++
+ #include "AreaDefines.h"
+ #include "BattleGroundTactics.h"
+ #include "BattlegroundEY.h"
+ #include "BattlegroundWS.h"
+ #include "DBCStores.h"
+ #include "Event.h"
++#include "LootObjectStack.h"
+ #include "PlayerbotAI.h"
+ #include "PlayerbotAIConfig.h"
+ #include "PlayerbotSpellRepository.h"
+ #include "Playerbots.h"
++#include "PlayerbotsDatabase.h"
+ #include "ServerFacade.h"
+ #include "SpellAuraEffects.h"
+ 
+@@ -217,6 +219,9 @@ bool CheckMountStateAction::isUseful()
+ 
+ bool CheckMountStateAction::Mount()
+ {
++    if (bot->IsNonMeleeSpellCast(false) || IsLootInteractionActive())
++        return false;
++
+     // Remove current Shapeshift if need be
+     if (botInShapeshiftForm != FORM_TRAVEL &&
+         botInShapeshiftForm != FORM_FLIGHT &&
+@@ -254,6 +259,17 @@ bool CheckMountStateAction::Mount()
+     return false;
+ }
+ 
++bool CheckMountStateAction::IsLootInteractionActive()
++{
++    LootObjectStack* availableLoot = AI_VALUE(LootObjectStack*, "available loot");
++    if (bot->GetLootGUID() || availableLoot->IsLootPending())
++        return true;
++
++    LootObject loot = AI_VALUE(LootObject, "loot target");
++    return !loot.IsEmpty() && availableLoot->CanAttemptLoot(loot.guid) && loot.IsLootPossible(bot) &&
++           loot.IsAtInteractDistance(bot);
++}
++
+ void CheckMountStateAction::Dismount()
+ {
+     if (bot->isMoving())
+@@ -267,7 +283,8 @@ void CheckMountStateAction::Dismount()
+ 
+ void CheckMountStateAction::ClearStaleFlightFlags()
+ {
+-    if (bot->HasIncreaseMountedFlightSpeedAura() || bot->HasFlyAura())
++    if (bot->IsInFlight() || bot->GetMotionMaster()->GetCurrentMovementGeneratorType() == FLIGHT_MOTION_TYPE ||
++        bot->HasIncreaseMountedFlightSpeedAura() || bot->HasFlyAura())
+         return;
+ 
+     if (bot->HasUnitMovementFlag(MOVEMENTFLAG_FLYING | MOVEMENTFLAG_DISABLE_GRAVITY))
+@@ -280,7 +297,9 @@ void CheckMountStateAction::ClearStaleFlightFlags()
+ 
+ void CheckMountStateAction::CompleteDismount(Player* bot)
+ {
+-    if (!bot || !bot->IsInWorld())
++    if (!bot || !bot->IsInWorld() || bot->IsBeingTeleported() || bot->IsInFlight() ||
++        bot->GetMotionMaster()->GetCurrentMovementGeneratorType() == FLIGHT_MOTION_TYPE ||
++        bot->HasUnitFlag(UNIT_FLAG_TAXI_FLIGHT))
+         return;
+ 
+     float const x = bot->GetPositionX();
+diff --git a/src/Ai/Base/Actions/CheckMountStateAction.h b/src/Ai/Base/Actions/CheckMountStateAction.h
+index 50f7624f..feaabaed 100644
+--- a/src/Ai/Base/Actions/CheckMountStateAction.h
++++ b/src/Ai/Base/Actions/CheckMountStateAction.h
+@@ -46,14 +46,15 @@ public:
+     static void LoadPreferredMounts();
+ 
+ private:
+-    Player* master;
+-    ShapeshiftForm masterInShapeshiftForm;
+-    ShapeshiftForm botInShapeshiftForm;
++    Player* master = nullptr;
++    ShapeshiftForm masterInShapeshiftForm = FORM_NONE;
++    ShapeshiftForm botInShapeshiftForm = FORM_NONE;
+     static std::unordered_map<uint32, PreferredMountCache> mountCache;
+     float CalculateDismountDistance() const;
+     float CalculateMountDistance() const;
+     void Dismount();
+     void ClearStaleFlightFlags();
++    bool IsLootInteractionActive();
+     bool ShouldFollowMasterMountState(Player* master, bool noAttackers, bool shouldMount) const;
+     bool ShouldDismountForMaster(Player* master) const;
+     int32 CalculateMasterMountSpeed(Player* master) const;
+diff --git a/src/Ai/World/Rpg/Action/NewRpgAction.cpp b/src/Ai/World/Rpg/Action/NewRpgAction.cpp
+index 27c0aa17..37816ac9 100644
+--- a/src/Ai/World/Rpg/Action/NewRpgAction.cpp
++++ b/src/Ai/World/Rpg/Action/NewRpgAction.cpp
+@@ -701,7 +701,6 @@ bool NewRpgTravelFlightAction::Execute(Event /*event*/)
+     if (bot->IsInFlight())
+     {
+         data.inFlight = true;
+-        ContinueCrossMapTaxi();
+         return false;
+     }
+ 
+@@ -734,43 +733,3 @@ bool NewRpgTravelFlightAction::Execute(Event /*event*/)
+     }
+     return true;
+ }
+-
+-void NewRpgTravelFlightAction::ContinueCrossMapTaxi()
+-{
+-    if (bot->IsBeingTeleported())
+-        return;
+-
+-    if (!bot->movespline->Finalized())
+-        return;
+-
+-    MotionMaster* mm = bot->GetMotionMaster();
+-    if (!mm || mm->GetCurrentMovementGeneratorType() != FLIGHT_MOTION_TYPE)
+-        return;
+-
+-    // Check if we are at our destination.
+-    uint32 nextDest = bot->m_taxi.GetTaxiDestination();
+-    if (!nextDest)
+-        return;
+-
+-    // Confirm next node needs different map.
+-    TaxiNodesEntry const* nextNode = sTaxiNodesStore.LookupEntry(nextDest);
+-    if (!nextNode || nextNode->map_id == bot->GetMapId())
+-        return;
+-
+-    FlightPathMovementGenerator* flight = dynamic_cast<FlightPathMovementGenerator*>(mm->top());
+-    if (!flight)
+-        return;
+-
+-    LOG_DEBUG("playerbots", "[New RPG] {} continuing taxi across map boundary (next node {} on map {})",
+-              bot->GetName(), nextDest, nextNode->map_id);
+-
+-    flight->SetCurrentNodeAfterTeleport();
+-
+-    if (flight->HasArrived())
+-        return;
+-
+-    TaxiPathNodeEntry const* node = flight->GetPath()[flight->GetCurrentNode()];
+-    flight->SkipCurrentNode();
+-
+-    bot->TeleportTo(nextNode->map_id, node->x, node->y, node->z, bot->GetOrientation(), TELE_TO_NOT_LEAVE_TAXI);
+-}
+diff --git a/src/Ai/World/Rpg/Action/NewRpgAction.h b/src/Ai/World/Rpg/Action/NewRpgAction.h
+index 61efae30..08300563 100644
+--- a/src/Ai/World/Rpg/Action/NewRpgAction.h
++++ b/src/Ai/World/Rpg/Action/NewRpgAction.h
+@@ -119,8 +119,6 @@ public:
+     NewRpgTravelFlightAction(PlayerbotAI* botAI) : NewRpgBaseAction(botAI, "new rpg travel flight") {}
+     bool Execute(Event event) override;
+ 
+-protected:
+-    void ContinueCrossMapTaxi();
+ };
+ 
+ #endif
+diff --git a/src/Bot/PlayerbotAI.cpp b/src/Bot/PlayerbotAI.cpp
+index 3aabfccb..f4d64e00 100644
+--- a/src/Bot/PlayerbotAI.cpp
++++ b/src/Bot/PlayerbotAI.cpp
+@@ -5,6 +5,14 @@
+  */
+ 
+ #include "PlayerbotAI.h"
++
++#include <algorithm>
++#include <cmath>
++#include <map>
++#include <mutex>
++#include <sstream>
++#include <string>
++
+ #include "AiFactory.h"
+ #include "BudgetValues.h"
+ #include "ChannelMgr.h"
+@@ -55,13 +63,8 @@
+ #include "Unit.h"
+ #include "UpdateTime.h"
+ #include "Vehicle.h"
++#include "WaypointMovementGenerator.h"
+ #include "WsgRouteState.h"
+-#include <algorithm>
+-#include <cmath>
+-#include <map>
+-#include <mutex>
+-#include <sstream>
+-#include <string>
+ 
+ namespace
+ {
+@@ -464,7 +467,7 @@ bool PlayerbotAI::UpdateAIReaction(uint32 elapsed, bool minimal, bool canControl
+             if (reaction->ShouldInterruptCast())
+                 bot->InterruptNonMeleeSpells(true);
+ 
+-            if (reaction->ShouldInterruptMovement())
++            if (reaction->ShouldInterruptMovement() && !bot->IsInFlight())
+                 bot->StopMoving();
+         }
+     }
+@@ -1579,6 +1582,58 @@ void PlayerbotAI::ChangeEngineOnNonCombat()
+     }
+ }
+ 
++bool PlayerbotAI::UpdateTaxiFlight()
++{
++    MotionMaster* motion = bot->GetMotionMaster();
++    bool const hasFlightMovement = motion->GetCurrentMovementGeneratorType() == FLIGHT_MOTION_TYPE;
++    if (!bot->IsInFlight() && !hasFlightMovement)
++    {
++        _taxiSplineStoppedAt = 0;
++        return false;
++    }
++
++    if (auto* travel = std::get_if<NewRpgInfo::TravelFlight>(&rpgInfo.data))
++        travel->inFlight = true;
++
++    if (IsSelfBot(bot) || !hasFlightMovement || !bot->movespline->Finalized())
++    {
++        _taxiSplineStoppedAt = 0;
++        return true;
++    }
++
++    auto* flight = static_cast<FlightPathMovementGenerator*>(motion->top());
++    auto const& path = flight->GetPath();
++    uint32 const currentNode = flight->GetCurrentNode();
++    if (currentNode >= path.size())
++        return true;
++
++    // Bots have no client to acknowledge the spline's map boundary.
++    uint32 const mapEnd = flight->GetPathAtMapEnd();
++    if (mapEnd < path.size() && currentNode + 1 >= mapEnd && path[mapEnd]->mapid != bot->GetMapId())
++    {
++        TaxiPathNodeEntry const* node = path[mapEnd];
++        flight->SetCurrentNodeAfterTeleport();
++        flight->SkipCurrentNode();
++        _taxiSplineStoppedAt = 0;
++        bot->TeleportTo(node->mapid, node->x, node->y, node->z, bot->GetOrientation(), TELE_TO_NOT_LEAVE_TAXI);
++        return true;
++    }
++
++    // A normal landing finalizes on the next movement update. Only restart a
++    // terminated spline after a grace period, keeping the original path and fare.
++    constexpr uint32 taxiRecoveryDelay = 10 * IN_MILLISECONDS;
++    if (!_taxiSplineStoppedAt)
++        _taxiSplineStoppedAt = getMSTime();
++    else if (GetMSTimeDiffToNow(_taxiSplineStoppedAt) >= taxiRecoveryDelay)
++    {
++        LOG_WARN("playerbots", "Taxi spline recovery: bot {} map {} path node {}/{}", bot->GetName(), bot->GetMapId(),
++                 currentNode, path.size());
++        _taxiSplineStoppedAt = 0;
++        flight->Reset(bot);
++    }
++    return true;
++}
++
+ void PlayerbotAI::DoNextAction(bool min)
+ {
+     if (!bot->IsInWorld() || bot->IsBeingTeleported() || (GetMaster() && GetMaster()->IsBeingTeleported()))
+@@ -1587,6 +1642,10 @@ void PlayerbotAI::DoNextAction(bool min)
+         return;
+     }
+ 
++    // Ground actions may StopMoving or dismount, destroying the taxi spline.
++    if (UpdateTaxiFlight())
++        return;
++
+     // Change engine if just died
+     bool isBotAlive = bot->IsAlive();
+     if (currentEngine != engines[BOT_STATE_DEAD] && !isBotAlive)
+diff --git a/src/Bot/PlayerbotAI.h b/src/Bot/PlayerbotAI.h
+index d8d7c978..478e3d8d 100644
+--- a/src/Bot/PlayerbotAI.h
++++ b/src/Bot/PlayerbotAI.h
+@@ -649,6 +649,8 @@ private:
+                                    bool mixed = false);
+     bool IsTellAllowed(PlayerbotSecurityLevel securityLevel = PLAYERBOT_SECURITY_ALLOW_ALL);
+     void UpdateAIGroupMaster();
++    bool UpdateTaxiFlight();
++    uint32 _taxiSplineStoppedAt = 0;
+     Item* FindItemInInventory(std::function<bool(ItemTemplate const*)> checkItem) const;
+     void HandleCommands();
+     void HandleCommand(uint32 type, std::string const& text, Player& fromPlayer, const uint32 lang = LANG_UNIVERSAL);

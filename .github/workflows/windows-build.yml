@@ -2,7 +2,7 @@ name: Windows server build
 
 on:
   push:
-    branches: [main, feature/arena-1v1-playerbots, feature/starter-professions, feature/local-qol, feature/temporary-progression]
+    branches: [main, feature/arena-1v1-playerbots, feature/starter-professions, feature/local-qol, feature/temporary-progression, fix/playerbots-movement-loot]
     paths:
       - sources.lock.json
       - scripts/**
@@ -40,6 +40,8 @@ jobs:
           /tmp/ip-temp-policy
       - name: Verify temporary progression storage isolation
         run: python3 tests/temporary_progression_integration_test.py
+      - name: Verify loot and taxi regression scenarios
+        run: python3 tests/playerbots_movement_test.py
   build:
     needs: arena-policy
     runs-on: windows-2022
@@ -110,6 +112,13 @@ jobs:
         with:
           name: WoW-Temporary-Progression-Update-x64-${{ github.run_number }}
           path: dist/Update_TemporaryProgression/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Upload Playerbots movement update
+        uses: actions/upload-artifact@v4
+        with:
+          name: WoW-Playerbots-Movement-Update-x64-${{ github.run_number }}
+          path: dist/Update_PlayerbotsMovement/
           if-no-files-found: error
           retention-days: 30
       - name: Upload small QoL update

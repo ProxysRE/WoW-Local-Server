@@ -98,6 +98,10 @@ def main():
     subprocess.run(["git", "-C", str(progression), "apply", "--check", "-"], input=patch, check=True)
     subprocess.run(["git", "-C", str(progression), "apply", "-"], input=patch, check=True)
     shutil.copytree(ROOT / "overlays/mod-individual-progression", progression, dirs_exist_ok=True)
+    bots = ROOT / "core/modules/mod-playerbots"
+    patch = (ROOT / "patches/playerbots-movement-loot.patch").read_text(encoding="utf-8").encode("utf-8")
+    subprocess.run(["git", "-C", str(bots), "apply", "--check", "-"], input=patch, check=True)
+    subprocess.run(["git", "-C", str(bots), "apply", "-"], input=patch, check=True)
     print(prepare_teleporter())
 
 
