@@ -2,12 +2,13 @@ name: Windows server build
 
 on:
   push:
-    branches: [main, feature/arena-1v1-playerbots, feature/starter-professions, feature/local-qol, feature/temporary-progression, fix/playerbots-movement-loot]
+    branches: [main, feature/arena-1v1-playerbots, feature/starter-professions, feature/local-qol, feature/temporary-progression, fix/playerbots-movement-loot, feature/autobalance]
     paths:
       - sources.lock.json
       - scripts/**
       - patches/**
       - overlays/**
+      - profiles/**
       - tests/**
       - .github/workflows/windows-build.yml
   workflow_dispatch:
@@ -126,6 +127,13 @@ jobs:
         with:
           name: WoW-Local-QoL-Update-x64-${{ github.run_number }}
           path: dist/Update_LocalQoL/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Upload AutoBalance update
+        uses: actions/upload-artifact@v4
+        with:
+          name: WoW-AutoBalance-Update-x64-${{ github.run_number }}
+          path: dist/Update_AutoBalance/
           if-no-files-found: error
           retention-days: 30
       - name: Upload configure diagnostics on failure
