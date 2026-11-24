@@ -38,11 +38,16 @@ def main():
     copy_tree(ROOT / "scripts", dist / "BuildScripts")
     copy_tree(ROOT / "patches", dist / "patches")
     copy_tree(ROOT / "overlays", dist / "overlays")
+    copy_tree(ROOT / "profiles", dist / "profiles")
+    auto_config = ROOT / "core/modules/mod-autobalance/conf/AutoBalance.conf.dist"
+    (server / "configs/modules").mkdir(parents=True, exist_ok=True)
+    shutil.copy2(auto_config, server / "configs/modules/AutoBalance.conf")
     shutil.copy2(ROOT / "scripts/configure-local.ps1", server / "configure-local.ps1")
     for exe in ("authserver", "worldserver"):
         (server / f"start-{exe}.bat").write_text(
             f'@echo off\ncd /d "%~dp0"\n{exe}.exe -c configs\\{exe}.conf\npause\n', encoding="ascii")
     summary = {"target": "Windows x64", "status": "compiled; in-game validation pending",
+               "autobalance": "instance player count including Playerbots; original creature levels; in-game validation pending",
                "playerbots_movement": "loot/remount arbitration and taxi protection/recovery; in-game validation pending",
                "temporary_progression": "session-only historical visits; in-game validation pending",
                "local_qol": "workshop crafting, gray-item sale and opt-in fishing loop; in-game validation pending",
@@ -66,6 +71,17 @@ def main():
         shutil.copy2(ROOT / "overlays" / module / "conf" / filename,
                      update / "Server/configs/modules" / filename)
     shutil.copy2(ROOT / "docs/LOCAL_QOL_RU.md", update / "UPDATE_RU.md")
+    balance = dist / "Update_AutoBalance"
+    (balance / "Server").mkdir(parents=True)
+    shutil.copy2(server / "worldserver.exe", balance / "Server/worldserver.exe")
+    shutil.copy2(ROOT / "docs/AUTOBALANCE_RU.md", balance / "UPDATE_RU.md")
+    # Every standalone executable in this build includes AutoBalance and needs its profile.
+    for destination in (visit, movement, update, balance):
+        configs = destination / "Server/configs/modules"
+        configs.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(auto_config, configs / "AutoBalance.conf")
+        shutil.copy2(auto_config, configs / "AutoBalance.conf.dist")
+        shutil.copy2(ROOT / "docs/AUTOBALANCE_RU.md", destination / "AUTOBALANCE_RU.md")
 
 
 if __name__ == "__main__":
