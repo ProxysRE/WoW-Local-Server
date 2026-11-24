@@ -43,6 +43,7 @@ def main():
         (server / f"start-{exe}.bat").write_text(
             f'@echo off\ncd /d "%~dp0"\n{exe}.exe -c configs\\{exe}.conf\npause\n', encoding="ascii")
     summary = {"target": "Windows x64", "status": "compiled; in-game validation pending",
+               "playerbots_movement": "loot/remount arbitration and taxi protection/recovery; in-game validation pending",
                "temporary_progression": "session-only historical visits; in-game validation pending",
                "local_qol": "workshop crafting, gray-item sale and opt-in fishing loop; in-game validation pending",
                "starter_professions": "first human login: 14 apprentice professions and 4 tools; in-game validation pending",
@@ -53,6 +54,10 @@ def main():
     (visit / "Server").mkdir(parents=True)
     shutil.copy2(server / "worldserver.exe", visit / "Server/worldserver.exe")
     shutil.copy2(ROOT / "docs/TEMPORARY_PROGRESSION_RU.md", visit / "UPDATE_RU.md")
+    movement = dist / "Update_PlayerbotsMovement"
+    (movement / "Server").mkdir(parents=True)
+    shutil.copy2(server / "worldserver.exe", movement / "Server/worldserver.exe")
+    shutil.copy2(ROOT / "docs/PLAYERBOTS_MOVEMENT_RU.md", movement / "UPDATE_RU.md")
     update = dist / "Update_LocalQoL"
     (update / "Server/configs/modules").mkdir(parents=True)
     shutil.copy2(server / "worldserver.exe", update / "Server/worldserver.exe")
