@@ -2,6 +2,7 @@
 ## Title: AC Wardrobe
 ## Notes: Server-backed wardrobe for the local AzerothCore server
 ## Author: Proxys local server project
-## Version: 0.1.0
+## Version: 0.1.1
 ## SavedVariables: ACWardrobeDB
 ACWardrobe.lua
+SetTooltip.lua
