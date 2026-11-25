@@ -1,5 +1,10 @@
 # WoW Local Server
 
+**WoW Bestiary 0.2.0:** серверный каталог существ и аддон; пилот Сумеречного леса.
+Установка и ограничения: [BESTIARY_RU.md](docs/BESTIARY_RU.md).
+Бестиарий и AC Wardrobe входят в общую актуальную ветку `feature/wardrobe` и
+один пакет `WoW-Wardrobe-Update-x64-N`. Отдельная сборка бестиария заменена общей.
+
 AzerothCore 3.3.5a под Windows x64 для локальной игры с Playerbots.
 
 В `feature/wardrobe` добавлен AC Wardrobe 0.1.0: аддон с 3D-примеркой,

@@ -5,6 +5,10 @@
 Это собственная реализация удобств гардероба, а не перенос его интерфейса целиком.
 Автоматические проверки есть; проверка в игровом клиенте ещё предстоит.
 
+Актуальная ветка `feature/wardrobe` также включает WoW Bestiary 0.2.0.
+Оба расширения находятся в одном worldserver.exe и одном пакете обновления.
+Справочник открывается через `/wb`; подробнее — [BESTIARY_RU.md](BESTIARY_RU.md).
+
 ## Установка обновления
 
 1. Скачать артефакт `WoW-Wardrobe-Update-x64-N` из успешного запуска Actions.
@@ -21,8 +25,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Install-Update.ps1 -Se
 В пакете оставлены миграции предыдущего обновления ядра: если они уже применены,
 updater пропустит их. Подробности — CORE_PLAYERBOTS_UPDATE_RU.md.
 
-4. Скопировать папку `Client/Interface/AddOns/ACWardrobe` в
-   `<папка игры>/Interface/AddOns/ACWardrobe`. Не в папку сервера.
+4. Скопировать обе папки из `Client/Interface/AddOns` — `ACWardrobe` и `WoWBestiary` —
+   в `<папка игры>/Interface/AddOns`. Не в папку сервера.
 5. Включить аддон в списке модификаций клиента и запустить сервер как обычно.
 
 Нужно, чтобы в текущем transmog.conf была включена система коллекции
