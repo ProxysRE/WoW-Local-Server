@@ -96,10 +96,10 @@ index 50f7624f..feaabaed 100644
      bool ShouldDismountForMaster(Player* master) const;
      int32 CalculateMasterMountSpeed(Player* master) const;
 diff --git a/src/Ai/World/Rpg/Action/NewRpgAction.cpp b/src/Ai/World/Rpg/Action/NewRpgAction.cpp
-index 27c0aa17..37816ac9 100644
+index 2b72a327..6295d31e 100644
 --- a/src/Ai/World/Rpg/Action/NewRpgAction.cpp
 +++ b/src/Ai/World/Rpg/Action/NewRpgAction.cpp
-@@ -701,7 +701,6 @@ bool NewRpgTravelFlightAction::Execute(Event /*event*/)
+@@ -706,7 +706,6 @@ bool NewRpgTravelFlightAction::Execute(Event /*event*/)
      if (bot->IsInFlight())
      {
          data.inFlight = true;
@@ -107,7 +107,7 @@ index 27c0aa17..37816ac9 100644
          return false;
      }
  
-@@ -734,43 +733,3 @@ bool NewRpgTravelFlightAction::Execute(Event /*event*/)
+@@ -743,43 +742,3 @@ bool NewRpgTravelFlightAction::Execute(Event /*event*/)
      }
      return true;
  }
@@ -165,49 +165,27 @@ index 61efae30..08300563 100644
  
  #endif
 diff --git a/src/Bot/PlayerbotAI.cpp b/src/Bot/PlayerbotAI.cpp
-index 3aabfccb..f4d64e00 100644
+index a68bfc3b..b7327b1f 100644
 --- a/src/Bot/PlayerbotAI.cpp
 +++ b/src/Bot/PlayerbotAI.cpp
-@@ -5,6 +5,14 @@
-  */
- 
- #include "PlayerbotAI.h"
-+
-+#include <algorithm>
-+#include <cmath>
-+#include <map>
-+#include <mutex>
-+#include <sstream>
-+#include <string>
-+
- #include "AiFactory.h"
- #include "BudgetValues.h"
- #include "ChannelMgr.h"
-@@ -55,13 +63,8 @@
+@@ -55,6 +55,7 @@
  #include "Unit.h"
  #include "UpdateTime.h"
  #include "Vehicle.h"
 +#include "WaypointMovementGenerator.h"
  #include "WsgRouteState.h"
--#include <algorithm>
--#include <cmath>
--#include <map>
--#include <mutex>
--#include <sstream>
--#include <string>
- 
- namespace
- {
-@@ -464,7 +467,7 @@ bool PlayerbotAI::UpdateAIReaction(uint32 elapsed, bool minimal, bool canControl
+ #include <algorithm>
+ #include <cfloat>
+@@ -476,7 +477,7 @@ bool PlayerbotAI::UpdateAIReaction(uint32 elapsed, bool minimal, bool canControl
              if (reaction->ShouldInterruptCast())
-                 bot->InterruptNonMeleeSpells(true);
+                 bot->CastStop();
  
 -            if (reaction->ShouldInterruptMovement())
 +            if (reaction->ShouldInterruptMovement() && !bot->IsInFlight())
                  bot->StopMoving();
          }
      }
-@@ -1579,6 +1582,58 @@ void PlayerbotAI::ChangeEngineOnNonCombat()
+@@ -1591,6 +1592,58 @@ void PlayerbotAI::ChangeEngineOnNonCombat()
      }
  }
  
@@ -266,7 +244,7 @@ index 3aabfccb..f4d64e00 100644
  void PlayerbotAI::DoNextAction(bool min)
  {
      if (!bot->IsInWorld() || bot->IsBeingTeleported() || (GetMaster() && GetMaster()->IsBeingTeleported()))
-@@ -1587,6 +1642,10 @@ void PlayerbotAI::DoNextAction(bool min)
+@@ -1599,6 +1652,10 @@ void PlayerbotAI::DoNextAction(bool min)
          return;
      }
  

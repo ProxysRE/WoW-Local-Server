@@ -2,7 +2,7 @@ name: Windows server build
 
 on:
   push:
-    branches: [main, feature/arena-1v1-playerbots, feature/starter-professions, feature/local-qol, feature/temporary-progression, fix/playerbots-movement-loot, feature/autobalance]
+    branches: [main, feature/arena-1v1-playerbots, feature/starter-professions, feature/local-qol, feature/temporary-progression, fix/playerbots-movement-loot, feature/autobalance, feature/core-playerbots-update]
     paths:
       - sources.lock.json
       - scripts/**
@@ -54,6 +54,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Verify upgrade installer preserves existing configs
+        shell: powershell
+        run: ./tests/install_core_update_test.ps1
       - name: Fetch pinned core and modules
         run: python scripts/prepare-sources.py
       - name: Cache build dependencies
@@ -108,32 +111,11 @@ jobs:
           path: dist/
           if-no-files-found: error
           retention-days: 30
-      - name: Upload temporary progression update
+      - name: Upload core and Playerbots upgrade
         uses: actions/upload-artifact@v4
         with:
-          name: WoW-Temporary-Progression-Update-x64-${{ github.run_number }}
-          path: dist/Update_TemporaryProgression/
-          if-no-files-found: error
-          retention-days: 30
-      - name: Upload Playerbots movement update
-        uses: actions/upload-artifact@v4
-        with:
-          name: WoW-Playerbots-Movement-Update-x64-${{ github.run_number }}
-          path: dist/Update_PlayerbotsMovement/
-          if-no-files-found: error
-          retention-days: 30
-      - name: Upload small QoL update
-        uses: actions/upload-artifact@v4
-        with:
-          name: WoW-Local-QoL-Update-x64-${{ github.run_number }}
-          path: dist/Update_LocalQoL/
-          if-no-files-found: error
-          retention-days: 30
-      - name: Upload AutoBalance update
-        uses: actions/upload-artifact@v4
-        with:
-          name: WoW-AutoBalance-Update-x64-${{ github.run_number }}
-          path: dist/Update_AutoBalance/
+          name: WoW-Core-Playerbots-Update-x64-${{ github.run_number }}
+          path: dist/Update_CorePlayerbots/
           if-no-files-found: error
           retention-days: 30
       - name: Upload configure diagnostics on failure

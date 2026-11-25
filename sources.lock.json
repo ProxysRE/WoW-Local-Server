@@ -6,14 +6,14 @@
       "name": "core",
       "repository": "mod-playerbots/azerothcore-wotlk",
       "branch": "Playerbot",
-      "commit": "e7e2e288e7d9ec30e2dfe6f417178a95986fcbb2",
+      "commit": "be923cbc45c3f1fab657f91d51fda999f6b81cc5",
       "path": "core"
     },
     {
       "name": "mod-playerbots",
       "repository": "mod-playerbots/mod-playerbots",
       "branch": "master",
-      "commit": "405f81196161017eebae3ee7a612d786a3ed2a9d",
+      "commit": "63a27bf038a2215dc96d82b6a4b5027d4e8e9273",
       "path": "core/modules/mod-playerbots"
     },
     {

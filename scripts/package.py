@@ -82,6 +82,29 @@ def main():
         shutil.copy2(auto_config, configs / "AutoBalance.conf")
         shutil.copy2(auto_config, configs / "AutoBalance.conf.dist")
         shutil.copy2(ROOT / "docs/AUTOBALANCE_RU.md", destination / "AUTOBALANCE_RU.md")
+    upgrade = dist / "Update_CorePlayerbots"
+    runtime = upgrade / "Server"
+    runtime.mkdir(parents=True)
+    for pattern in ("*.exe", "*.dll"):
+        for binary in server.glob(pattern):
+            if binary.name in ("authserver.exe", "worldserver.exe", "mysql.exe") or binary.suffix == ".dll":
+                shutil.copy2(binary, runtime / binary.name)
+    # Merge update directories into the existing Source tree; never ship a replacement database.
+    copy_tree(ROOT / "core/data/sql/updates", runtime / "Source/data/sql/updates")
+    copy_tree(ROOT / "core/modules/mod-playerbots/data/sql/playerbots/updates",
+              runtime / "Source/modules/mod-playerbots/data/sql/playerbots/updates")
+    (runtime / "configs/modules").mkdir(parents=True)
+    shutil.copy2(auto_config, runtime / "configs/modules/AutoBalance.conf")
+    reference = upgrade / "ReferenceConfigs"
+    reference.mkdir()
+    shutil.copy2(ROOT / "core/src/server/apps/worldserver/worldserver.conf.dist", reference / "worldserver.conf.dist")
+    shutil.copy2(ROOT / "core/modules/mod-playerbots/conf/playerbots.conf.dist", reference / "playerbots.conf.dist")
+    shutil.copy2(ROOT / "scripts/install-core-update.ps1", upgrade / "Install-Update.ps1")
+    shutil.copy2(ROOT / "docs/CORE_PLAYERBOTS_UPDATE_RU.md", upgrade / "UPDATE_RU.md")
+    shutil.copy2(ROOT / "docs/UPGRADE_MANIFEST.json", upgrade / "UPGRADE_MANIFEST.json")
+    # EXE-only packages are unsafe for a core revision that also needs SQL migrations.
+    for obsolete in (visit, movement, update, balance):
+        shutil.rmtree(obsolete)
 
 
 if __name__ == "__main__":

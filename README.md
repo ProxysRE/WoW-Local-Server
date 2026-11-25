@@ -2,6 +2,12 @@
 
 AzerothCore 3.3.5a под Windows x64 для локальной игры с Playerbots.
 
+В ветке `feature/core-playerbots-update` ядро и Playerbots обновлены до ревизий
+от 20 ноября 2026. Для существующего сервера использовать пакет
+`WoW-Core-Playerbots-Update-x64-N` и [инструкцию обновления](docs/CORE_PLAYERBOTS_UPDATE_RU.md).
+Он включает SQL-миграции и установщик, сохраняющий активные конфиги. Для этой
+версии не выпускаются отдельные обновления только с EXE.
+
 **Состав:** Playerbots, AHBot, Reforging, NPC Teleporter, Transmog, Individual Progression, AutoBalance.
 Новых рас нет. В экспериментальной ветке добавлен пилот арены 1×1 против Playerbot.
 Подробности: [пилот арены](docs/ARENA_1V1_PILOT_RU.md). Игровые проверки ещё не выполнены.

@@ -1,12 +1,14 @@
 """Compile patched production methods against instrumented movement/loot fixtures."""
 import argparse
+import json
 from pathlib import Path
 import subprocess
 import tempfile
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
-REV = "405f81196161017eebae3ee7a612d786a3ed2a9d"
+REV = next(entry["commit"] for entry in json.loads((ROOT / "sources.lock.json").read_text())["sources"]
+           if entry["name"] == "mod-playerbots")
 FILES = (
     "src/Ai/Base/Actions/CheckMountStateAction.cpp",
     "src/Ai/Base/Actions/CheckMountStateAction.h",
