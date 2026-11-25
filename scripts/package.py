@@ -39,6 +39,7 @@ def main():
     copy_tree(ROOT / "patches", dist / "patches")
     copy_tree(ROOT / "overlays", dist / "overlays")
     copy_tree(ROOT / "profiles", dist / "profiles")
+    copy_tree(ROOT / "client", dist / "ClientAddons")
     auto_config = ROOT / "core/modules/mod-autobalance/conf/AutoBalance.conf.dist"
     (server / "configs/modules").mkdir(parents=True, exist_ok=True)
     shutil.copy2(auto_config, server / "configs/modules/AutoBalance.conf")
@@ -47,6 +48,7 @@ def main():
         (server / f"start-{exe}.bat").write_text(
             f'@echo off\ncd /d "%~dp0"\n{exe}.exe -c configs\\{exe}.conf\npause\n', encoding="ascii")
     summary = {"target": "Windows x64", "status": "compiled; in-game validation pending",
+               "bestiary": "Duskwood server-backed catalogue and addon 0.2.0; in-game validation pending",
                "autobalance": "instance player count including Playerbots; original creature levels; in-game validation pending",
                "playerbots_movement": "loot/remount arbitration and taxi protection/recovery; in-game validation pending",
                "temporary_progression": "session-only historical visits; in-game validation pending",
@@ -55,6 +57,11 @@ def main():
                "arena_1v1": "experimental unrated Playerbot bridge; in-game validation pending",
                "new_races": False}
     (dist / "BUILD_STATUS.json").write_text(json.dumps(summary, indent=2) + "\n")
+    bestiary = dist / "Update_Bestiary"
+    (bestiary / "Server").mkdir(parents=True)
+    shutil.copy2(server / "worldserver.exe", bestiary / "Server/worldserver.exe")
+    copy_tree(ROOT / "client", bestiary / "ClientAddons")
+    shutil.copy2(ROOT / "docs/BESTIARY_RU.md", bestiary / "UPDATE_RU.md")
     visit = dist / "Update_TemporaryProgression"
     (visit / "Server").mkdir(parents=True)
     shutil.copy2(server / "worldserver.exe", visit / "Server/worldserver.exe")

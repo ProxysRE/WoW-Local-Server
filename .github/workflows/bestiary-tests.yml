@@ -1,0 +1,19 @@
+name: Bestiary protocol tests
+on:
+  push:
+    paths: ['overlays/mod-bestiary/**', 'client/**', 'tests/**', '.github/workflows/bestiary-tests.yml']
+  pull_request:
+    paths: ['overlays/mod-bestiary/**', 'client/**', 'tests/**', '.github/workflows/bestiary-tests.yml']
+permissions:
+  contents: read
+jobs:
+  protocol:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install lupa==2.6
+      - run: g++ -std=c++20 -Wall -Wextra -Werror tests/protocol_test.cpp -o /tmp/bestiary-protocol-test
+      - run: python -m unittest discover -s tests -p test_addon.py -v

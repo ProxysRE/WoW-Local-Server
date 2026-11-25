@@ -2,7 +2,7 @@ name: Windows server build
 
 on:
   push:
-    branches: [main, feature/arena-1v1-playerbots, feature/starter-professions, feature/local-qol, feature/temporary-progression, fix/playerbots-movement-loot, feature/autobalance, feature/core-playerbots-update]
+    branches: [main, feature/arena-1v1-playerbots, feature/starter-professions, feature/local-qol, feature/temporary-progression, fix/playerbots-movement-loot, feature/autobalance, feature/core-playerbots-update, feature/server-bestiary]
     paths:
       - sources.lock.json
       - scripts/**
@@ -10,6 +10,7 @@ on:
       - overlays/**
       - profiles/**
       - tests/**
+      - client/**
       - .github/workflows/windows-build.yml
   workflow_dispatch:
 
@@ -116,6 +117,13 @@ jobs:
         with:
           name: WoW-Core-Playerbots-Update-x64-${{ github.run_number }}
           path: dist/Update_CorePlayerbots/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Upload Bestiary update
+        uses: actions/upload-artifact@v4
+        with:
+          name: WoW-Bestiary-Update-x64-${{ github.run_number }}
+          path: dist/Update_Bestiary/
           if-no-files-found: error
           retention-days: 30
       - name: Upload configure diagnostics on failure

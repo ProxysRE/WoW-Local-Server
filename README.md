@@ -1,5 +1,8 @@
 # WoW Local Server
 
+**WoW Bestiary 0.2.0:** серверный каталог существ и аддон; пилот Сумеречного леса.
+Установка и ограничения: [BESTIARY_RU.md](docs/BESTIARY_RU.md).
+
 AzerothCore 3.3.5a под Windows x64 для локальной игры с Playerbots.
 
 В ветке `feature/core-playerbots-update` ядро и Playerbots обновлены до ревизий
