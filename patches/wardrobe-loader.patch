@@ -1,0 +1,16 @@
+diff --git a/src/transmog_loader.cpp b/src/transmog_loader.cpp
+--- a/src/transmog_loader.cpp
++++ b/src/transmog_loader.cpp
+@@ -7,10 +7,12 @@
+ // From SC
+ void AddSC_Transmog();
+ void AddSC_transmog_commandscript();
++void AddSC_wardrobe();
+ 
+ // Add all
+ void Addmod_transmogScripts()
+ {
+     AddSC_Transmog();
+     AddSC_transmog_commandscript();
++    AddSC_wardrobe();
+ }

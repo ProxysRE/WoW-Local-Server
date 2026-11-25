@@ -2,6 +2,12 @@
 
 AzerothCore 3.3.5a под Windows x64 для локальной игры с Playerbots.
 
+В `feature/wardrobe` добавлен AC Wardrobe 0.1.0: аддон с 3D-примеркой,
+серверной коллекцией, поиском, нарядами и сохранением вида по слотам.
+[Установка и проверка](docs/WARDROBE_RU.md). Для обновления —
+`WoW-Wardrobe-Update-x64-N`; аддон лежит в `Client/Interface/AddOns`.
+Игровая проверка этой версии ещё предстоит.
+
 В ветке `feature/core-playerbots-update` ядро и Playerbots обновлены до ревизий
 от 20 ноября 2026. Для существующего сервера использовать пакет
 `WoW-Core-Playerbots-Update-x64-N` и [инструкцию обновления](docs/CORE_PLAYERBOTS_UPDATE_RU.md).
