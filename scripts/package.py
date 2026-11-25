@@ -49,7 +49,7 @@ def main():
             f'@echo off\ncd /d "%~dp0"\n{exe}.exe -c configs\\{exe}.conf\npause\n', encoding="ascii")
     summary = {"target": "Windows x64", "status": "compiled; in-game validation pending",
                "wardrobe": "0.1.1 set tooltip fix, server-backed addon, preview, outfits and slot persistence; in-game validation pending",
-               "bestiary": "all populated regions and instance difficulties; addon 0.3.0; in-game validation pending",
+               "bestiary": "all populated regions and instance difficulties; addon 0.3.1; in-game validation pending",
                "autobalance": "instance player count including Playerbots; original creature levels; in-game validation pending",
                "playerbots_movement": "loot/remount arbitration and taxi protection/recovery; in-game validation pending",
                "temporary_progression": "session-only historical visits; in-game validation pending",

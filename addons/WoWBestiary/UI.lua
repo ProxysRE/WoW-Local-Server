@@ -25,6 +25,22 @@ local function Pane(parent,x,y,w,h)
   p:SetBackdropBorderColor(.32,.31,.26,1)
   return p
 end
+local function SearchBox(parent,x,y,width)
+  -- Give each field its own full-width background instead of template textures.
+  local edit=CreateFrame("EditBox",nil,parent)
+  edit:SetSize(width,24)
+  edit:SetPoint("TOPLEFT",parent,"TOPLEFT",x,y)
+  edit:SetFrameLevel(parent:GetFrameLevel()+2)
+  edit:SetFontObject("GameFontHighlightSmall")
+  edit:SetTextInsets(8,8,0,0)
+  edit:SetAutoFocus(false)
+  edit:SetBackdrop({bgFile="Interface\\ChatFrame\\ChatFrameBackground",
+    edgeFile="Interface\\Tooltips\\UI-Tooltip-Border",edgeSize=8,
+    insets={left=2,right=2,top=2,bottom=2}})
+  edit:SetBackdropColor(.015,.02,.03,1)
+  edit:SetBackdropBorderColor(.5,.5,.45,1)
+  return edit
+end
 local function Scroll(parent,x,y,w,h,visible,rowHeight)
   local name="WoWBestiaryScroll"..tostring(A.scrollCount or 0)
   A.scrollCount=(A.scrollCount or 0)+1
@@ -81,9 +97,7 @@ function A.BuildUI()
     FauxScrollFrame_SetOffset(A.zoneScroll,0)
     A.Refresh()
   end)
-  local regionEdit=CreateFrame("EditBox",nil,zonePane,"InputBoxTemplate")
-  regionEdit:SetAutoFocus(false);regionEdit:SetSize(147,22)
-  regionEdit:SetPoint("TOPLEFT",zonePane,"TOPLEFT",19,-76)
+  local regionEdit=SearchBox(zonePane,8,-76,166)
   regionEdit:SetMaxLetters(80)
   regionEdit:SetScript("OnEscapePressed",function(self) self:ClearFocus() end)
   regionEdit:SetScript("OnEnterPressed",function(self) self:ClearFocus() end)
@@ -111,10 +125,8 @@ function A.BuildUI()
   Button(zonePane,"Обновить",8,-368,166,26,function() A.ReloadServer() end)
   Txt(zonePane,"Поиск локации — поле сверху",10,-399,158,18,"GameFontDisableSmall")
   A.countLabel=Txt(mobPane,"Существа",13,-8,290,22)
-  local edit=CreateFrame("EditBox",nil,mobPane,"InputBoxTemplate")
+  local edit=SearchBox(mobPane,13,-40,302)
   A.search=edit
-  edit:SetAutoFocus(false);edit:SetSize(285,22)
-  edit:SetPoint("TOPLEFT",mobPane,"TOPLEFT",23,-41)
   edit:SetMaxLetters(80);edit:SetText("")
   edit:SetScript("OnEscapePressed",function(self) self:ClearFocus() end)
   edit:SetScript("OnEnterPressed",function(self) self:ClearFocus() end)

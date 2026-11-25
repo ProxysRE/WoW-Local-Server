@@ -20,6 +20,7 @@ class RegionUITests(unittest.TestCase):
             function methods:Show() self.shown=true end
             function methods:Hide() self.shown=false end
             function methods:IsShown() return self.shown end
+            function methods:GetFrameLevel() return 1 end
             local meta={__index=function(t,k)
                 if methods[k] then return methods[k] end
                 if k:match("^[A-Z]") then return function() end end

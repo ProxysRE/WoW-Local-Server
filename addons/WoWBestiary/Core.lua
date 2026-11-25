@@ -1,6 +1,6 @@
 WoWBestiary = WoWBestiary or {}
 local A = WoWBestiary
-A.version = "0.3.0"
+A.version = "0.3.1"
 A.data = WoWBestiaryData or {zones={}}
 A.zones = WoWBestiaryZones or {}
 A.continents = WoWBestiaryContinents or {}
