@@ -2,18 +2,24 @@
 #include "BestiaryProtocol.h"
 #include "BestiaryRegions.h"
 #include "Chat.h"
+#include "Creature.h"
 #include "DatabaseEnv.h"
 #include "DBCStores.h"
+#include "DBCFileLoader.h"
 #include "Log.h"
 #include "LootMgr.h"
 #include "MapMgr.h"
+#include "Map.h"
 #include "ObjectMgr.h"
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "WorldPacket.h"
+#include "World.h"
 #include "WorldSession.h"
 #include <algorithm>
 #include <chrono>
+#include <cctype>
+#include <cmath>
 #include <map>
 #include <set>
 #include <tuple>
@@ -36,6 +42,7 @@ using LootTable = std::map<uint32, std::vector<LootRow>>;
 struct Client
 {
     std::chrono::steady_clock::time_point last;
+    std::chrono::steady_clock::time_point lastTrack;
     char kind = 0;
     uint32 target = 0;
     Rows rows;
@@ -74,11 +81,20 @@ uint32 Category(MapEntry const* map, uint32 zone)
     }
 }
 
+struct TrackInfo
+{
+    std::vector<uint32> guids;
+    bool moving = false;
+    uint32 rank = 0;
+    bool Eligible() const { return Bestiary::ShouldTrack(rank, true, guids.size(), moving); }
+};
+
 class Catalogue
 {
 public:
     std::map<uint32, Region> regions;
     std::set<uint32> entries;
+    std::map<uint32, TrackInfo> tracked;
     std::map<uint64, Client> clients;
     bool ready = false;
 
@@ -124,6 +140,19 @@ public:
                 conditions.emplace(f[0].Get<uint32>(), f[1].Get<uint32>(), f[2].Get<uint32>());
             } while (result->NextRow());
 
+        // Load client map texture names once; the core's compact DBC struct omits this field.
+        DBCFileLoader maps;
+        std::string const mapFile = sWorld->GetDataPath() + "/dbc/WorldMapArea.dbc";
+        if (maps.Load(mapFile.c_str(), "iiisffffiii") && maps.GetCols() == 11)
+            for (uint32 i = 0; i < maps.GetNumRows(); ++i)
+            {
+                auto record = maps.getRecord(i);
+                std::string texture = record.getString(3);
+                if (record.getUInt(2) && !texture.empty() && std::all_of(texture.begin(), texture.end(),
+                    [](unsigned char c) { return std::isalnum(c) || c == '_'; }))
+                    mapTextures[record.getUInt(2)] = texture;
+            }
+
         for (auto const& [guid, data] : sObjectMgr->GetAllCreatureData())
         {
             if (!data.dbData)
@@ -152,6 +181,13 @@ public:
                     CreatureTemplate const* base = sObjectMgr->GetCreatureTemplate(entry);
                     if (!entry || !base)
                         continue;
+                    if (map->IsWorldMap() && (base->rank == 2 || base->rank == 4))
+                    {
+                        TrackInfo& info = tracked[entry];
+                        info.rank = base->rank;
+                        info.guids.push_back(guid);
+                        info.moving = info.moving || data.movementType != 0;
+                    }
                     uint32 const effective = Bestiary::DifficultyEntry(entry, mode, map->IsRaid(),
                         [base](uint32 index) -> uint32
                         {
@@ -208,8 +244,49 @@ public:
             rows.push_back("M|" + std::to_string(entry) + "|" + Bestiary::Escape(name) + "|" +
                 std::to_string(mob->minlevel) + "|" + std::to_string(mob->maxlevel) + "|" +
                 std::to_string(mob->rank) + "|" + std::to_string(member.second) + "|" +
-                std::to_string(mob->type) + "|" + std::to_string(member.first));
+                std::to_string(mob->type) + "|" + std::to_string(member.first) + "|" +
+                (tracked.count(entry) && tracked.at(entry).Eligible() ? "1" : "0"));
         }
+        return rows;
+    }
+
+    Rows Positions(uint32 entry, Player* player)
+    {
+        Rows rows;
+        bool live = false;
+        for (uint32 guid : tracked.at(entry).guids)
+        {
+            CreatureData const* data = sObjectMgr->GetCreatureData(guid);
+            Map* map = data ? sMapMgr->FindBaseNonInstanceMap(data->mapid) : nullptr;
+            if (!map)
+                continue;
+            // Never create a map/grid or wake inactive pool members just to answer the catalogue.
+            auto const range = map->GetCreatureBySpawnIdStore().equal_range(guid);
+            for (auto it = range.first; it != range.second; ++it)
+            {
+                Creature const* creature = it->second;
+                if (!creature || !creature->IsInWorld() || !creature->IsAlive() || creature->GetEntry() != entry ||
+                    !(creature->GetPhaseMask() & player->GetPhaseMask()))
+                    continue;
+                live = true;
+                uint32 const zone = creature->GetZoneId();
+                auto const texture = mapTextures.find(zone);
+                if (texture == mapTextures.end())
+                    continue;
+                float x = creature->GetPositionX();
+                float y = creature->GetPositionY();
+                Map2ZoneCoordinates(x, y, zone);
+                if (!std::isfinite(x) || !std::isfinite(y) || x < 0 || x > 100 || y < 0 || y > 100)
+                    continue;
+                std::string name = "Zone " + std::to_string(zone);
+                if (AreaTableEntry const* area = sAreaTableStore.LookupEntry(zone))
+                    name = LocalName(area->area_name, player->GetSession()->GetSessionDbLocaleIndex());
+                rows.push_back("P|" + std::to_string(data->mapid) + "|" + std::to_string(zone) + "|" +
+                    std::to_string(x) + "|" + std::to_string(y) + "|" + texture->second + "|" +
+                    Bestiary::Escape(name));
+            }
+        }
+        rows.insert(rows.begin(), rows.empty() ? (live ? "S|NO_MAP" : "S|NO_DATA") : "S|OK");
         return rows;
     }
 
@@ -231,6 +308,7 @@ public:
 
 private:
     LootTable tables[4];
+    std::map<uint32, std::string> mapTextures;
     std::set<std::tuple<uint32, uint32, uint32>> conditions;
 
     void Flatten(uint32 table, uint32 id, std::string const& tab, LocaleConstant locale,
@@ -333,19 +411,39 @@ public:
         }
         bool const valid = (request.kind == 'L' && request.target == 0) ||
             (request.kind == 'Z' && catalogue.regions.count(request.target)) ||
-            (request.kind == 'D' && catalogue.entries.count(request.target));
+            (request.kind == 'D' && catalogue.entries.count(request.target)) ||
+            (request.kind == 'P' && catalogue.tracked.count(request.target) &&
+                catalogue.tracked.at(request.target).Eligible());
         if (!valid)
         {
             Send(player, request.id, "X|UNKNOWN_TARGET");
             return false;
         }
-        if (client.kind != request.kind || client.target != request.target)
+        bool const newPosition = request.kind == 'P' && request.page == 0;
+        if (request.kind == 'P' && request.page > 0 &&
+            (client.kind != 'P' || client.target != request.target))
+        {
+            Send(player, request.id, "X|BAD_PAGE");
+            return false;
+        }
+        if (newPosition)
+        {
+            if (now - client.lastTrack < std::chrono::seconds(3))
+            {
+                Send(player, request.id, "X|TRACK_COOLDOWN");
+                return false;
+            }
+            client.lastTrack = now;
+        }
+        if (client.kind != request.kind || client.target != request.target || newPosition)
         {
             LocaleConstant const locale = player->GetSession()->GetSessionDbLocaleIndex();
             if (request.kind == 'L')
                 client.rows = catalogue.Locations(locale);
             else if (request.kind == 'Z')
                 client.rows = catalogue.Zone(request.target, locale);
+            else if (request.kind == 'P')
+                client.rows = catalogue.Positions(request.target, player);
             else
                 client.rows = catalogue.Detail(request.target, locale);
             client.kind = request.kind;

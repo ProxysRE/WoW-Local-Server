@@ -65,7 +65,7 @@ inline bool Parse(std::string_view text, Request& request)
 {
     auto const fields = Split(text);
     if (fields.size() != 6 || fields[0] != "Q" || fields[1] != "2" ||
-        (fields[3] != "L" && fields[3] != "Z" && fields[3] != "D"))
+        (fields[3] != "L" && fields[3] != "Z" && fields[3] != "D" && fields[3] != "P"))
         return false;
     request.kind = fields[3][0];
     return Number(fields[2], request.id) && request.id > 0 && request.id <= 1000000000 &&

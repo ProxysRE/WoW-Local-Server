@@ -13,6 +13,13 @@ int main()
         "Q|2|1|Z|-10|0", "Q|2|1|Z|10|0junk", "Q|2|1|Z|10|4294967296", "Q|2|1|Z|10|0|extra"})
         assert(!Bestiary::Parse(text, request));
     assert(Bestiary::Parse("Q|2|124|L|0|0", request));
+    assert(Bestiary::Parse("Q|2|126|P|521|0", request));
+    assert(!Bestiary::ShouldTrack(0, true, 20, true));
+    assert(!Bestiary::ShouldTrack(1, true, 20, true));
+    assert(!Bestiary::ShouldTrack(4, true, 1, false));
+    assert(Bestiary::ShouldTrack(4, true, 2, false));
+    assert(Bestiary::ShouldTrack(2, true, 1, true));
+    assert(!Bestiary::ShouldTrack(4, false, 2, true));
     assert(Bestiary::Parse("Q|2|125|Z|2147483963|0", request));
     std::set<unsigned> keys;
     for (unsigned map : {0u, 1u, 30u, 249u, 530u, 571u, 631u, 724u})

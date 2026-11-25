@@ -17,6 +17,7 @@ local function refresh()
     if A.Refresh then A.Refresh() end
 end
 local function fail(text)
+    if job and job.kind=="P" and A.PositionError then A.PositionError(text) end
     pending=nil;job=nil
     A.networkStatus=text
     refresh()
@@ -30,7 +31,7 @@ end
 local function start(kind,target)
     pending=nil
     job={kind=kind,target=target,region=A.selectedZone,page=0,rows={},sendAt=GetTime()+0.2}
-    local statuses={L="Загрузка локаций…",Z="Загрузка существ…",D="Загрузка добычи…"}
+    local statuses={L="Загрузка локаций…",Z="Загрузка существ…",D="Загрузка добычи…",P="Запрос позиции…"}
     A.networkStatus=statuses[kind]
     refresh()
 end
@@ -86,6 +87,14 @@ function A.RequestDetail(mob)
     if job and job.kind=="D" and job.target==mob.id and job.region==A.selectedZone then return end
     start("D",mob.id)
 end
+local lastPositionRequest=-10
+function A.RequestPosition(mob)
+    if not mob or not mob.track then return end
+    if GetTime()-lastPositionRequest<3 then return end
+    lastPositionRequest=GetTime()
+    if A.ShowPositions then A.ShowPositions(mob,{}) end
+    start("P",mob.id)
+end
 function A.ReloadServer()
     pending=nil;job=nil;cacheOrder={};detailOrder={}
     A.regionsLoaded=false;A.data.zones={};A.selectedMob=nil
@@ -113,14 +122,22 @@ local function consume(payload)
                 not count or not expansion or not capacity then return fail("Некорректная запись локации") end
             job.rows[#job.rows+1]={id=id,map=map,zone=zone,category=category,mode=mode,
                 name=decode(f[7]),count=count,expansion=expansion,capacity=capacity}
+        elseif job.kind=="P" then
+            if f[1]=="S" and #f==2 then job.rows[#job.rows+1]={status=f[2]}
+            else
+                local map,zone,x,y=tonumber(f[2]),tonumber(f[3]),tonumber(f[4]),tonumber(f[5])
+                if #f~=7 or f[1]~="P" or not map or not zone or not x or not y or x<0 or x>100 or
+                    y<0 or y>100 or not string.match(f[6],"^[%w_]+$") then return fail("Некорректная позиция") end
+                job.rows[#job.rows+1]={map=map,zone=zone,x=x,y=y,texture=f[6],name=decode(f[7])}
+            end
         elseif job.kind=="Z" then
             local id,lo,hi,rank,spawns,creatureType,base=tonumber(f[2]),tonumber(f[4]),tonumber(f[5]),
                 tonumber(f[6]),tonumber(f[7]),tonumber(f[8]),tonumber(f[9])
-            if #f~=9 or f[1]~="M" or not id or not lo or not hi or not rank or not spawns or not creatureType or not base then
+            if (#f~=9 and #f~=10) or f[1]~="M" or not id or not lo or not hi or not rank or not spawns or not creatureType or not base then
                 return fail("Некорректная запись существа")
             end
             job.rows[#job.rows+1]={id=id,name=decode(f[3]),min=lo,max=hi,rank=rank,spawns=spawns,
-                creatureType=creatureType,base=base,loot={},skin={},pick={}}
+                creatureType=creatureType,base=base,track=f[10]=="1",loot={},skin={},pick={}}
         else
             local id,quality,chance,quest=tonumber(f[3]),tonumber(f[5]),tonumber(f[6]),tonumber(f[7])
             if #f~=8 or f[1]~="I" or (f[2]~="loot" and f[2]~="skin" and f[2]~="pick") or
@@ -154,6 +171,14 @@ local function consume(payload)
         if A.zoneScroll then FauxScrollFrame_SetOffset(A.zoneScroll,0) end
         if A.selectedZone then A.SelectZone(A.selectedZone) else fail("Нет локаций в каталоге сервера") end
         return
+    elseif job.kind=="P" then
+        local mob=A.selectedMob
+        if mob and mob.id==job.target and A.ShowPositions then A.ShowPositions(mob,job.rows) end
+        job=nil
+        A.networkStatus="Снимок позиции получен"
+        refresh()
+        if mob and not mob.detailLoaded then A.RequestDetail(mob) end
+        return
     elseif job.kind=="Z" then
         A.data.zones[job.target]={mobs=job.rows}
         touch(job.target)
@@ -180,6 +205,7 @@ frame:SetScript("OnEvent",function(self,event,prefix,message,channel,sender)
     if event=="PLAYER_ENTERING_WORLD" then
         pending=nil;job=nil;cacheOrder={};detailOrder={}
         A.regionsLoaded=false;A.data.zones={};A.selectedMob=nil;A.zones={};A.regionById={}
+        if A.mapViewer then A.mapViewer:Hide() end
         A.networkStatus="Откройте справочник для подключения"
         if A.frame and A.frame:IsShown() then A.RequestRegions() end
         refresh()

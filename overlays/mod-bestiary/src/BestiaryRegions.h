@@ -3,9 +3,15 @@
 #define BESTIARY_REGIONS_H
 
 #include <cstdint>
+#include <cstddef>
 
 namespace Bestiary
 {
+constexpr bool ShouldTrack(std::uint32_t rank, bool worldMap, std::size_t spawns, bool moving)
+{
+    return worldMap && (rank == 2 || rank == 4) && (moving || spawns > 1);
+}
+
 // Area IDs occupy the low half; map/mode keys never collide with world zones.
 constexpr std::uint32_t MapRegion(std::uint32_t map, std::uint32_t mode = 0)
 {

@@ -73,7 +73,16 @@ function A.BuildUI()
   if A.frame then return end
   local f=CreateFrame("Frame","WoWBestiaryMainFrame",UIParent)
   A.frame=f
-  f:SetWidth(940);f:SetHeight(540)
+  local width,height,scale=A.WindowSize(UIParent:GetWidth(),UIParent:GetHeight())
+  local zoneWidth=math.floor(width*.20)
+  local mobWidth=math.floor(width*.35)
+  local detailX=zoneWidth+mobWidth+32
+  local detailWidth=width-detailX-16
+  local paneHeight=height-111
+  local zoneRows=math.max(4,math.floor((paneHeight-194)/26))
+  local mobRows=math.max(5,math.floor((paneHeight-144)/24))
+  local lootRows=math.max(4,math.floor((paneHeight-278)/24))
+  f:SetSize(width,height);f:SetScale(scale)
   f:SetPoint("CENTER",UIParent,"CENTER",0,0)
   f:SetFrameStrata("DIALOG")
   f:SetToplevel(true)
@@ -85,19 +94,19 @@ function A.BuildUI()
   f:SetBackdropColor(.1,.12,.16,.97)
   local title=Txt(f,"Бестиарий Азерота",24,-19,430,25,"GameFontNormalLarge")
   Txt(f,"WoW 3.3.5a • данные AzerothCore",25,-47,340,16,"GameFontDisableSmall")
-  Button(f,"X",886,-18,30,25,function() f:Hide() end)
-  local zonePane=Pane(f,16,-81,182,429)
-  local mobPane=Pane(f,206,-81,329,429)
-  local detailPane=Pane(f,543,-81,380,429)
+  Button(f,"X",width-54,-18,30,25,function() f:Hide() end)
+  local zonePane=Pane(f,16,-81,zoneWidth,paneHeight)
+  local mobPane=Pane(f,zoneWidth+24,-81,mobWidth,paneHeight)
+  local detailPane=Pane(f,detailX,-81,detailWidth,paneHeight)
   Txt(zonePane,"Локации",12,-9,150,24)
-  A.categoryButton=Button(zonePane,"Все регионы",8,-40,166,24,function()
+  A.categoryButton=Button(zonePane,"Все регионы",8,-40,zoneWidth-16,24,function()
     local index=1
     for i,category in ipairs(A.categories) do if category.id==A.category then index=i;break end end
     A.category=A.categories[index%#A.categories+1].id
     FauxScrollFrame_SetOffset(A.zoneScroll,0)
     A.Refresh()
   end)
-  local regionEdit=SearchBox(zonePane,8,-76,166)
+  local regionEdit=SearchBox(zonePane,8,-76,zoneWidth-16)
   regionEdit:SetMaxLetters(80)
   regionEdit:SetScript("OnEscapePressed",function(self) self:ClearFocus() end)
   regionEdit:SetScript("OnEnterPressed",function(self) self:ClearFocus() end)
@@ -108,7 +117,7 @@ function A.BuildUI()
     A.Refresh()
   end)
   A.regionSearch=regionEdit
-  A.zoneScroll=Scroll(zonePane,7,-110,160,234,9,26)
+  A.zoneScroll=Scroll(zonePane,7,-110,zoneWidth-22,zoneRows*26,zoneRows,26)
   for _,row in ipairs(A.zoneScroll.rows) do
     row:SetScript("OnClick",function(self) if self.zone then A.SelectZone(self.zone.id) end end)
     row:SetScript("OnEnter",function(self)
@@ -121,11 +130,11 @@ function A.BuildUI()
     end)
     row:SetScript("OnLeave",function() GameTooltip:Hide() end)
   end
-  A.regionCount=Txt(zonePane,"",10,-345,155,18,"GameFontDisableSmall")
-  Button(zonePane,"Обновить",8,-368,166,26,function() A.ReloadServer() end)
-  Txt(zonePane,"Поиск локации — поле сверху",10,-399,158,18,"GameFontDisableSmall")
-  A.countLabel=Txt(mobPane,"Существа",13,-8,290,22)
-  local edit=SearchBox(mobPane,13,-40,302)
+  A.regionCount=Txt(zonePane,"",10,-paneHeight+84,zoneWidth-20,18,"GameFontDisableSmall")
+  Button(zonePane,"Обновить",8,-paneHeight+61,zoneWidth-16,26,function() A.ReloadServer() end)
+  Txt(zonePane,"Поиск локации — поле сверху",10,-paneHeight+30,zoneWidth-20,18,"GameFontDisableSmall")
+  A.countLabel=Txt(mobPane,"Существа",13,-8,mobWidth-26,22)
+  local edit=SearchBox(mobPane,13,-40,mobWidth-26)
   A.search=edit
   edit:SetMaxLetters(80);edit:SetText("")
   edit:SetScript("OnEscapePressed",function(self) self:ClearFocus() end)
@@ -138,18 +147,18 @@ function A.BuildUI()
     A.Refresh()
   end)
   Txt(mobPane,"Поиск по имени или ID",13,-66,245,17,"GameFontDisableSmall")
-  A.sortButton=Button(mobPane,"Уровень ↑",10,-90,148,23,function()
+  A.sortButton=Button(mobPane,"Уровень ↑",10,-90,math.floor((mobWidth-30)/2),23,function()
     A.sortOrder = A.sortOrder=="level" and "name" or "level"
     A.Refresh()
   end)
-  A.filterButton=Button(mobPane,"Все существа",165,-90,150,23,function()
+  A.filterButton=Button(mobPane,"Все существа",math.floor(mobWidth/2)+5,-90,math.floor((mobWidth-30)/2),23,function()
     local r={[-1]=0,[0]=1,[1]=2,[2]=3,[3]=4,[4]=-1}
     A.rankFilter=r[A.rankFilter] or -1
     A.selectedMob=nil
     FauxScrollFrame_SetOffset(A.mobScroll,0)
     A.Refresh()
   end)
-  A.mobScroll=Scroll(mobPane,11,-121,301,264,11,24)
+  A.mobScroll=Scroll(mobPane,11,-121,mobWidth-28,mobRows*24,mobRows,24)
   for _,row in ipairs(A.mobScroll.rows) do
     row:SetScript("OnClick",function(self)
       A.selectedMob=self.mob
@@ -159,20 +168,43 @@ function A.BuildUI()
       A.RequestDetail(self.mob)
     end)
   end
-  A.detailTitle=Txt(detailPane,"Выберите существо",13,-12,350,40,"GameFontNormalLarge")
-  A.detailMeta=Txt(detailPane,"",13,-55,350,35,"GameFontHighlightSmall")
-  A.detailID=Txt(detailPane,"",13,-86,350,20,"GameFontDisableSmall")
+  A.detailTitle=Txt(detailPane,"Выберите существо",13,-12,detailWidth-26,40,"GameFontNormalLarge")
+  A.detailMeta=Txt(detailPane,"",13,-55,detailWidth-26,35,"GameFontHighlightSmall")
+  A.detailID=Txt(detailPane,"",13,-86,detailWidth-26,20,"GameFontDisableSmall")
   A.tabs={}
   local titles={{"loot","Добыча"},{"skin","Шкуры"},{"pick","Карманы"}}
   for i,t in ipairs(titles) do
-    A.tabs[t[1]]=Button(detailPane,t[2],11+(i-1)*117,-116,114,25,function()
+    A.tabs[t[1]]=Button(detailPane,t[2],11+(i-1)*(detailWidth-22)/3,-116,(detailWidth-28)/3,25,function()
       A.lootTab=t[1]
       FauxScrollFrame_SetOffset(A.lootScroll,0)
       A.Refresh()
     end)
   end
-  A.lootLabel=Txt(detailPane,"",13,-150,348,19,"GameFontDisableSmall")
-  A.lootScroll=Scroll(detailPane,13,-177,344,194,8,24)
+  local qualityWidth=math.floor((detailWidth-32)*.47)
+  A.qualityButton=Button(detailPane,"Все качества",12,-150,qualityWidth,24,function()
+    local menu={}
+    for quality=-1,7 do
+      local value=quality
+      menu[#menu+1]={text=A.qualities[value],checked=A.qualityFilter==value,
+        func=function() A.SetQuality(value) end}
+    end
+    if EasyMenu then
+      A.qualityMenu=A.qualityMenu or CreateFrame("Frame","WoWBestiaryQualityMenu",UIParent,"UIDropDownMenuTemplate")
+      EasyMenu(menu,A.qualityMenu,"cursor",0,0,"MENU")
+    else A.SetQuality(A.qualityFilter==7 and -1 or A.qualityFilter+1) end
+  end)
+  A.lootSearch=SearchBox(detailPane,qualityWidth+20,-150,detailWidth-qualityWidth-32)
+  A.lootSearch:SetMaxLetters(80)
+  A.lootSearch:SetScript("OnEscapePressed",function(self) self:ClearFocus() end)
+  A.lootSearch:SetScript("OnEnterPressed",function(self) self:ClearFocus() end)
+  A.lootSearch:SetScript("OnTextChanged",function(self,userInput)
+    if not userInput then return end
+    A.lootQuery=self:GetText() or ""
+    FauxScrollFrame_SetOffset(A.lootScroll,0)
+    A.Refresh()
+  end)
+  A.lootLabel=Txt(detailPane,"",13,-181,detailWidth-26,20,"GameFontDisableSmall")
+  A.lootScroll=Scroll(detailPane,13,-208,detailWidth-36,lootRows*24,lootRows,24)
   for _,r in ipairs(A.lootScroll.rows) do
     r:SetScript("OnEnter",function(self)
       if not self.item then return end
@@ -183,8 +215,7 @@ function A.BuildUI()
         GameTooltip:AddLine(self.item.name or ("Item "..self.item.id),1,1,1)
       end
       GameTooltip:AddLine("ID: "..self.item.id,.6,.6,.6)
-      GameTooltip:AddLine("Шанс: "..A.FormatChance(self.item),1,.85,.35)
-      if self.item.note and self.item.note~="" then GameTooltip:AddLine(self.item.note,.8,.8,.8,true) end
+      if self.item.chance then GameTooltip:AddLine("Базовый шанс: "..A.FormatChance(self.item),1,.85,.35) end
       GameTooltip:Show()
     end)
     r:SetScript("OnLeave",function() GameTooltip:Hide() end)
@@ -207,9 +238,13 @@ function A.BuildUI()
     r.label:SetPoint("RIGHT",r,"RIGHT",-76,0)
     r.label:SetHeight(24)
   end
-  A.help=Txt(detailPane,"Базовые шансы БД, без рейтов и скриптов.\n? — сложная таблица; детали в подсказке.",13,-380,345,38,"GameFontDisableSmall")
-  A.footer=Txt(f,"/wb • /bestiary • /бестиарий",23,-516,880,19,"GameFontDisableSmall")
-  A.source=Txt(f,"Источник: "..(A.data.source or "неизвестен"),390,-47,525,18,"GameFontDisableSmall")
+  A.mapButton=Button(detailPane,"Текущая позиция на карте",12,-paneHeight+60,detailWidth-24,25,function()
+    if A.RequestPosition then A.RequestPosition(A.selectedMob) end
+  end)
+  A.mapButton:Hide()
+  A.help=Txt(detailPane,"Базовый шанс без рейтов; пусто — не рассчитан.",13,-paneHeight+30,detailWidth-26,23,"GameFontDisableSmall")
+  A.footer=Txt(f,"/wb • /bestiary • /бестиарий",23,-height+24,width-46,19,"GameFontDisableSmall")
+  A.source=Txt(f,"Источник: "..(A.data.source or "неизвестен"),390,-47,width-415,18,"GameFontDisableSmall")
   f:Hide()
   table.insert(UISpecialFrames,"WoWBestiaryMainFrame")
   A.Refresh()
@@ -259,11 +294,13 @@ function A.Refresh()
     A.detailID:SetText("NPC: "..(m.base or m.id)..(m.base~=m.id and (" • шаблон: "..m.id) or "")..
       " • точек: "..(m.spawns or "?"))
   end
+  A.qualityButton:SetText(A.qualities[A.qualityFilter])
+  if m and m.track then A.mapButton:Show() else A.mapButton:Hide() end
   local loot=A.GetLoot(m,A.lootTab)
   if m and not m.detailLoaded then
     A.lootLabel:SetText("Добыча ещё не загружена")
   else
-    A.lootLabel:SetText(m and ("Предметы: "..#loot.."   (наведите для подробностей)") or "")
+    A.lootLabel:SetText(m and ("Предметы: "..#loot.." • поиск по имени/ID — справа") or "")
   end
   FauxScrollFrame_Update(A.lootScroll,#loot,#A.lootScroll.rows,24)
   offset=FauxScrollFrame_GetOffset(A.lootScroll)
@@ -272,7 +309,7 @@ function A.Refresh()
     r.item=it
     if it then
       r:Show()
-      local color=it.quality==4 and "|cffa335ee" or it.quality==3 and "|cff0070dd" or it.quality==2 and "|cff1eff00" or "|cffffffff"
+      local color=A.qualityColors[it.quality] or "|cffffffff"
       r.label:SetText(color..it.name.."|r"..(it.quest and " |cffffff00[Квест]|r" or ""))
       r.value:SetText(A.FormatChance(it))
       r.icon:SetTexture(GetItemIcon(it.id) or "Interface\\Icons\\INV_Misc_QuestionMark")

@@ -177,6 +177,56 @@ class AddonTests(unittest.TestCase):
         self.assertTrue(self.lua.eval('WoWBestiary.GetZoneMobs(10)[18].detailLoaded'))
         self.assertEqual(self.lua.eval('#WoWBestiary.GetZoneMobs(10)[18].loot'), 1)
 
+    def test_quality_item_search_and_duplicate_paths(self):
+        self.lua.execute('''
+            mob={loot={
+                {id=1,name="Серый меч",quality=0,chance=10},
+                {id=2,name="Белый меч",quality=1,chance=20},
+                {id=3,name="Зелёный меч",quality=2,chance=30},
+                {id=3,name="Зелёный меч",quality=2,chance=15},
+                {id=4,name="Синий щит",quality=3,chance=5},
+            }}
+            WoWBestiary.SetQuality(2)
+        ''')
+        self.assertEqual(self.lua.eval('#WoWBestiary.GetLoot(mob,"loot")'), 1)
+        self.assertEqual(self.lua.eval('WoWBestiary.FormatChance(WoWBestiary.GetLoot(mob,"loot")[1])'), '')
+        self.lua.execute('WoWBestiary.SetQuality(0)')
+        self.assertEqual(self.lua.eval('WoWBestiary.GetLoot(mob,"loot")[1].id'), 1)
+        self.lua.execute('WoWBestiary.SetQuality(-1);WoWBestiary.lootQuery="БЕЛЫЙ"')
+        self.assertEqual(self.lua.eval('WoWBestiary.GetLoot(mob,"loot")[1].id'), 2)
+        self.assertEqual(self.lua.eval('WoWBestiary.FormatChance(WoWBestiary.GetLoot(mob,"loot")[1])'), '20%')
+
+    def test_window_sizes_fit_low_and_high_resolution(self):
+        for sw, sh in ((800, 600), (1280, 720), (1920, 1080), (2560, 1440)):
+            width, height, scale = self.lua.eval(f'WoWBestiary.WindowSize({sw},{sh})')
+            self.assertLessEqual(width * scale, sw - 19)
+            self.assertLessEqual(height * scale, sh - 19)
+        width, _, _ = self.lua.eval('WoWBestiary.WindowSize(1920,1080)')
+        self.assertGreater(width, 940)
+
+    def test_position_is_opt_in_and_malformed_coordinates_are_rejected(self):
+        self.lua.execute('''
+            positionResult=nil
+            function WoWBestiary.ShowPositions(mob,rows) positionResult=rows end
+            WoWBestiary.selectedMob={id=521,name="Лупос",track=false,detailLoaded=true}
+            WoWBestiary.RequestPosition(WoWBestiary.selectedMob)
+        ''')
+        self.tick(1)
+        self.assertEqual(self.lua.eval('#sent'), 0)
+        self.lua.execute('WoWBestiary.selectedMob.track=true;WoWBestiary.RequestPosition(WoWBestiary.selectedMob)')
+        self.tick(2)
+        self.assertEqual(self.lua.eval('sent[1][2]'), 'Q|2|1|P|521|0')
+        self.event('1|1|1|H|P|521|0|1\nS|OK\nP|0|10|25|75|Duskwood|Сумеречный лес')
+        self.assertEqual(self.lua.eval('positionResult[2].x'), 25)
+        self.lua.execute('WoWBestiary.RequestPosition(WoWBestiary.selectedMob)')
+        self.tick(2.5)
+        self.assertEqual(self.lua.eval('#sent'), 1)
+        self.tick(5)
+        self.lua.execute('WoWBestiary.RequestPosition(WoWBestiary.selectedMob)')
+        self.tick(6)
+        self.event('2|1|1|H|P|521|0|1\nP|0|10|125|75|Duskwood|Сумеречный лес')
+        self.assertIn('Некорректная позиция', self.lua.eval('WoWBestiary.networkStatus'))
+
 
 if __name__ == '__main__':
     unittest.main()

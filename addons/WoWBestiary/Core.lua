@@ -1,6 +1,6 @@
 WoWBestiary = WoWBestiary or {}
 local A = WoWBestiary
-A.version = "0.3.1"
+A.version = "0.4.0"
 A.data = WoWBestiaryData or {zones={}}
 A.zones = WoWBestiaryZones or {}
 A.continents = WoWBestiaryContinents or {}
@@ -80,7 +80,7 @@ function A.GetFilteredMobs()
     return items
 end
 function A.FormatChance(item)
-    if not item.chance then return "?" end
+    if not item.chance then return "" end
     local s=string.format("%.2f",item.chance)
     s=string.gsub(s,"0+$","")
     s=string.gsub(s,"%.$","")
@@ -88,7 +88,48 @@ function A.FormatChance(item)
 end
 function A.GetLoot(mob,tab)
     if not mob then return {} end
-    return mob[tab] or {}
+    local items,byId={},{}
+    for _,row in ipairs(mob[tab] or {}) do
+        local item=byId[row.id]
+        if item then
+            item.chance=nil -- Repeated paths can be dependent; never add their percentages.
+            item.quest=item.quest or row.quest
+        else
+            item={id=row.id,name=row.name,quality=row.quality,chance=row.chance,quest=row.quest}
+            byId[row.id]=item;items[#items+1]=item
+        end
+    end
+    local result={}
+    local q=A.Lower(A.lootQuery)
+    for _,item in ipairs(items) do
+        if (A.qualityFilter==-1 or item.quality==A.qualityFilter) and
+            (q=="" or string.find(A.Lower(item.name),q,1,true) or string.find(tostring(item.id),q,1,true)) then
+            result[#result+1]=item
+        end
+    end
+    table.sort(result,function(a,b)
+        if a.quality~=b.quality then return a.quality>b.quality end
+        local an,bn=A.Lower(a.name),A.Lower(b.name)
+        if an~=bn then return an<bn end
+        return a.id<b.id
+    end)
+    return result
+end
+A.qualityFilter=-1
+A.lootQuery=""
+A.qualities={[-1]="Все качества",[0]="Серые",[1]="Белые",[2]="Зелёные — необычные",
+    [3]="Синие — редкие",[4]="Фиолетовые — эпические",[5]="Легендарные",[6]="Артефакты",[7]="Наследуемые"}
+A.qualityColors={[0]="|cff9d9d9d",[1]="|cffffffff",[2]="|cff1eff00",[3]="|cff0070dd",
+    [4]="|cffa335ee",[5]="|cffff8000",[6]="|cffe6cc80",[7]="|cffe6cc80"}
+function A.SetQuality(quality)
+    A.qualityFilter=quality
+    if A.lootScroll then FauxScrollFrame_SetOffset(A.lootScroll,0) end
+    if A.Refresh then A.Refresh() end
+end
+function A.WindowSize(screenWidth,screenHeight)
+    local width=math.max(940,math.min(1400,screenWidth*.95))
+    local height=math.max(540,math.min(820,screenHeight*.90))
+    return math.floor(width),math.floor(height),math.min(1,(screenWidth-20)/width,(screenHeight-20)/height)
 end
 local initialized=false
 local eventFrame=CreateFrame("Frame")

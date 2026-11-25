@@ -21,6 +21,10 @@ class RegionUITests(unittest.TestCase):
             function methods:Hide() self.shown=false end
             function methods:IsShown() return self.shown end
             function methods:GetFrameLevel() return 1 end
+            function methods:SetSize(w,h) self.width=w;self.height=h end
+            function methods:GetWidth() return self.width or 1280 end
+            function methods:GetHeight() return self.height or 720 end
+            function methods:SetPoint(...) self.anchor={...} end
             local meta={__index=function(t,k)
                 if methods[k] then return methods[k] end
                 if k:match("^[A-Z]") then return function() end end
@@ -40,7 +44,7 @@ class RegionUITests(unittest.TestCase):
             UIParent=CreateFrame("Frame");frames={}
             GameTooltip=CreateFrame("Tooltip");frames={}
         ''')
-        for name in ("Data.lua", "Zones.lua", "Core.lua", "Network.lua", "UI.lua"):
+        for name in ("Data.lua", "Zones.lua", "Core.lua", "Network.lua", "Map.lua", "UI.lua"):
             lua.execute((ROOT / "addons/WoWBestiary" / name).read_text())
         lua.execute('''
             WoWBestiary.BuildUI()
@@ -69,6 +73,18 @@ class RegionUITests(unittest.TestCase):
         ''')
         self.assertIsNone(lua.eval('WoWBestiary.zoneScroll.rows[1].zone'))
         self.assertFalse(lua.eval('WoWBestiary.zoneScroll.rows[1]:IsShown()'))
+        lua.execute('''
+            WoWBestiary.ShowPositions({id=521,name="Тестовый редкий"},
+                {{status="OK"},{map=0,zone=12,x=25,y=75,texture="Elwynn",name="Элвинн"}})
+        ''')
+        self.assertTrue(lua.eval('WoWBestiary.mapViewer.pins[1]:IsShown()'))
+        self.assertAlmostEqual(lua.eval('WoWBestiary.mapViewer.pins[1].anchor[4]'),
+                               lua.eval('WoWBestiary.mapViewer.canvas:GetWidth()') * .25)
+        lua.execute('now=31;WoWBestiary.mapViewer.scripts.OnUpdate(WoWBestiary.mapViewer)')
+        self.assertFalse(lua.eval('WoWBestiary.mapViewer.pins[1]:IsShown()'))
+        lua.execute('WoWBestiary.ShowPositions({id=521,name="Тест"},{{status="NO_DATA"}})')
+        self.assertIsNone(lua.eval('WoWBestiary.mapViewer.stamp'))
+        self.assertFalse(lua.eval('WoWBestiary.mapViewer.pins[1]:IsShown()'))
 
 
 if __name__ == '__main__':
