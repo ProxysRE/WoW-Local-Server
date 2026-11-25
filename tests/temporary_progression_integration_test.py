@@ -4,6 +4,7 @@ The fixture records every progression-quest mutation. It also uses the real core
 DataMap rather than replacing session storage with a test-only implementation.
 """
 import argparse
+import json
 from pathlib import Path
 import shutil
 import subprocess
@@ -12,7 +13,8 @@ import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
 IP_REV = "e1795553d381e561ab5f37585566c22e23cdff73"
-CORE_REV = "e7e2e288e7d9ec30e2dfe6f417178a95986fcbb2"
+CORE_REV = next(entry["commit"] for entry in json.loads((ROOT / "sources.lock.json").read_text())["sources"]
+                if entry["name"] == "core")
 
 
 def function(source, name):
