@@ -102,6 +102,8 @@ def main():
     subprocess.run(["git", "-C", str(ROOT / "core"), "apply", "-"], input=patch, check=True)
     shutil.copytree(ROOT / "overlays/mod-local-qol",
                     ROOT / "core/modules/mod-local-qol", dirs_exist_ok=True)
+    shutil.copytree(ROOT / "overlays/mod-bot-buff",
+                    ROOT / "core/modules/mod-bot-buff", dirs_exist_ok=True)
     shutil.copytree(ROOT / "overlays/mod-group-builder",
                     ROOT / "core/modules/mod-group-builder", dirs_exist_ok=True)
     shutil.copytree(ROOT / "overlays/mod-bestiary",

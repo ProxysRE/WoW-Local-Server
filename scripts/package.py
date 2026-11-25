@@ -48,6 +48,7 @@ def main():
         (server / f"start-{exe}.bat").write_text(
             f'@echo off\ncd /d "%~dp0"\n{exe}.exe -c configs\\{exe}.conf\npause\n', encoding="ascii")
     summary = {"target": "Windows x64", "status": "compiled; in-game validation pending",
+               "bot_buff": "targeted .botbuff request without grouping; in-game validation pending",
                "group_builder": "0.1.0 strict role/class/spec, soft ilvl and native invites; in-game validation pending",
                "wardrobe": "0.1.1 set tooltip fix, server-backed addon, preview, outfits and slot persistence; in-game validation pending",
                "bestiary": "all regions, loot filters and selective live rare map snapshots; addon 0.4.0; in-game validation pending",
@@ -107,6 +108,8 @@ def main():
     shutil.copy2(ROOT / "docs/WARDROBE_RU.md", upgrade / "UPDATE_RU.md")
     shutil.copy2(ROOT / "docs/BESTIARY_RU.md", upgrade / "BESTIARY_RU.md")
     shutil.copy2(ROOT / "docs/GROUP_BUILDER_RU.md", upgrade / "GROUP_BUILDER_RU.md")
+    shutil.copy2(ROOT / "docs/BOT_BUFF_RU.md", upgrade / "BOT_BUFF_RU.md")
+    copy_tree(ROOT / "overlays/mod-bot-buff", upgrade / "BotBuffSource/mod-bot-buff")
     copy_tree(ROOT / "overlays/mod-group-builder", upgrade / "GroupBuilderSource/mod-group-builder")
     shutil.copy2(ROOT / "docs/WARDROBE_SET_TOOLTIP_RU.md", upgrade / "WARDROBE_SET_TOOLTIP_RU.md")
     shutil.copy2(ROOT / "docs/CORE_PLAYERBOTS_UPDATE_RU.md", upgrade / "CORE_PLAYERBOTS_UPDATE_RU.md")
