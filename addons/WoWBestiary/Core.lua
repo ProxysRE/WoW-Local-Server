@@ -1,6 +1,6 @@
 WoWBestiary = WoWBestiary or {}
 local A = WoWBestiary
-A.version = "0.2.0"
+A.version = "0.3.0"
 A.data = WoWBestiaryData or {zones={}}
 A.zones = WoWBestiaryZones or {}
 A.continents = WoWBestiaryContinents or {}
@@ -32,6 +32,31 @@ end
 function A.GetZoneMobs(zoneId)
     local data=A.data.zones and A.data.zones[zoneId]
     return data and data.mobs or {}
+end
+A.category = -1
+A.regionQuery = ""
+A.categories = {
+    {id=-1,name="Все регионы"}, {id=0,name="Восточные королевства"}, {id=1,name="Калимдор"},
+    {id=2,name="Запределье"}, {id=3,name="Нордскол"}, {id=4,name="Подземелья"},
+    {id=5,name="Рейды"}, {id=6,name="Поля боя и арены"}, {id=7,name="Другие карты"},
+}
+function A.RegionName(zone)
+    local mode=""
+    if zone.category==4 then mode=zone.mode==1 and " [гер.]" or " [обыч.]"
+    elseif zone.category==5 then
+        mode=" ["..zone.capacity..(zone.mode>=2 and " гер.]" or " об.]")
+    end
+    return zone.name..mode
+end
+function A.GetVisibleZones()
+    local list={}
+    local q=A.Lower(A.regionQuery)
+    for _,zone in ipairs(A.zones) do
+        if (A.category==-1 or A.category==zone.category) and
+            (q=="" or string.find(A.Lower(A.RegionName(zone)),q,1,true) or
+                string.find(tostring(zone.id),q,1,true)) then list[#list+1]=zone end
+    end
+    return list
 end
 function A.GetFilteredMobs()
     local src=A.GetZoneMobs(A.selectedZone)
@@ -73,7 +98,6 @@ eventFrame:SetScript("OnEvent",function(self,event,name)
     initialized=true
     if type(WoWBestiarySaved)~="table" then WoWBestiarySaved={} end
     if WoWBestiarySaved.lastZone then A.selectedZone=WoWBestiarySaved.lastZone end
-    A.selectedZone=10
     if A.BuildUI then A.BuildUI() end
 end)
 SLASH_WOWBESTIARY1="/wb"
@@ -82,8 +106,10 @@ SLASH_WOWBESTIARY3="/бестиарий"
 SlashCmdList["WOWBESTIARY"]=function(msg)
     if msg=="reset" then
         WoWBestiarySaved={}
-        A.selectedZone=10; A.rankFilter=-1; A.query=""; A.selectedMob=nil
-        if A.Refresh then A.Refresh() end
+        A.selectedZone=10; A.rankFilter=-1; A.query=""; A.regionQuery=""; A.category=-1; A.selectedMob=nil
+        if A.search then A.search:SetText("") end
+        if A.regionSearch then A.regionSearch:SetText("") end
+        if A.ReloadServer then A.ReloadServer() elseif A.Refresh then A.Refresh() end
         print("|cffcaa763WoW Bestiary:|r настройки сброшены")
         return
     end

@@ -48,8 +48,8 @@ def main():
         (server / f"start-{exe}.bat").write_text(
             f'@echo off\ncd /d "%~dp0"\n{exe}.exe -c configs\\{exe}.conf\npause\n', encoding="ascii")
     summary = {"target": "Windows x64", "status": "compiled; in-game validation pending",
-               "wardrobe": "0.1.0 server-backed addon, preview, outfits and slot persistence; in-game validation pending",
-               "bestiary": "Duskwood server-backed catalogue and addon 0.2.0; in-game validation pending",
+               "wardrobe": "0.1.1 set tooltip fix, server-backed addon, preview, outfits and slot persistence; in-game validation pending",
+               "bestiary": "all populated regions and instance difficulties; addon 0.3.0; in-game validation pending",
                "autobalance": "instance player count including Playerbots; original creature levels; in-game validation pending",
                "playerbots_movement": "loot/remount arbitration and taxi protection/recovery; in-game validation pending",
                "temporary_progression": "session-only historical visits; in-game validation pending",
@@ -105,6 +105,7 @@ def main():
     shutil.copy2(ROOT / "scripts/install-core-update.ps1", upgrade / "Install-Update.ps1")
     shutil.copy2(ROOT / "docs/WARDROBE_RU.md", upgrade / "UPDATE_RU.md")
     shutil.copy2(ROOT / "docs/BESTIARY_RU.md", upgrade / "BESTIARY_RU.md")
+    shutil.copy2(ROOT / "docs/WARDROBE_SET_TOOLTIP_RU.md", upgrade / "WARDROBE_SET_TOOLTIP_RU.md")
     shutil.copy2(ROOT / "docs/CORE_PLAYERBOTS_UPDATE_RU.md", upgrade / "CORE_PLAYERBOTS_UPDATE_RU.md")
     copy_tree(ROOT / "addons", upgrade / "Client/Interface/AddOns")
     copy_tree(ROOT / "overlays/mod-transmog", upgrade / "WardrobeSource/mod-transmog")

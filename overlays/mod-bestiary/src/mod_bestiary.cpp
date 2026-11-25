@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "BestiaryProtocol.h"
+#include "BestiaryRegions.h"
 #include "Chat.h"
 #include "DatabaseEnv.h"
+#include "DBCStores.h"
 #include "Log.h"
 #include "LootMgr.h"
 #include "MapMgr.h"
@@ -34,14 +36,49 @@ using LootTable = std::map<uint32, std::vector<LootRow>>;
 struct Client
 {
     std::chrono::steady_clock::time_point last;
-    uint32 detail = 0;
+    char kind = 0;
+    uint32 target = 0;
     Rows rows;
 };
+
+struct Region
+{
+    uint32 map = 0;
+    uint32 zone = 0;
+    uint32 category = 0;
+    uint32 mode = 0;
+    // effective template -> (base entry, number of DB spawns in this mode)
+    std::map<uint32, std::pair<uint32, uint32>> members;
+};
+
+std::string LocalName(char const* const* names, LocaleConstant locale)
+{
+    return names[locale] && *names[locale] ? names[locale] : (names[0] ? names[0] : "");
+}
+
+uint32 Category(MapEntry const* map, uint32 zone)
+{
+    if (map->IsNonRaidDungeon())
+        return 4;
+    if (map->IsRaid())
+        return 5;
+    if (map->IsBattlegroundOrArena())
+        return 6;
+    switch (GetVirtualMapForMapAndZone(map->MapID, zone))
+    {
+        case 0: return 0;
+        case 1: return 1;
+        case 530: return 2;
+        case 571: return 3;
+        default: return 7;
+    }
+}
 
 class Catalogue
 {
 public:
-    std::map<uint32, uint32> spawns;
+    std::map<uint32, Region> regions;
+    std::set<uint32> entries;
     std::map<uint64, Client> clients;
     bool ready = false;
 
@@ -89,35 +126,89 @@ public:
 
         for (auto const& [guid, data] : sObjectMgr->GetAllCreatureData())
         {
-            if (!data.dbData || data.mapid != 0)
+            if (!data.dbData)
                 continue;
-            if (sMapMgr->GetZoneId(data.phaseMask, data.mapid, data.posX, data.posY, data.posZ) != 10)
+            MapEntry const* map = sMapStore.LookupEntry(data.mapid);
+            if (!map)
                 continue;
-            // Multispawn alternatives are distinct species sharing one DB spawn.
-            std::set<uint32> const entries = {data.id, data.id2, data.id3};
-            for (uint32 entry : entries)
-                if (entry && sObjectMgr->GetCreatureTemplate(entry))
-                    ++spawns[entry];
+            uint32 zone = 0;
+            if (!map->IsDungeon() && !map->IsBattlegroundOrArena())
+                zone = sMapMgr->GetZoneId(data.phaseMask, data.mapid, data.posX, data.posY, data.posZ);
+            uint32 const modes = map->IsDungeon() ? 4 : 1;
+            for (uint32 mode = 0; mode < modes; ++mode)
+            {
+                if (map->IsDungeon() && (!(data.spawnMask & (1u << mode)) ||
+                    !GetMapDifficultyData(data.mapid, Difficulty(mode))))
+                    continue;
+                uint32 const key = zone ? zone : Bestiary::MapRegion(data.mapid, mode);
+                Region& region = regions[key];
+                region.map = data.mapid;
+                region.zone = zone;
+                region.category = Category(map, zone);
+                region.mode = mode;
+                std::set<uint32> const alternatives = {data.id, data.id2, data.id3};
+                for (uint32 entry : alternatives)
+                {
+                    CreatureTemplate const* base = sObjectMgr->GetCreatureTemplate(entry);
+                    if (!entry || !base)
+                        continue;
+                    uint32 const effective = Bestiary::DifficultyEntry(entry, mode, map->IsRaid(),
+                        [base](uint32 index) -> uint32
+                        {
+                            uint32 const id = base->DifficultyEntry[index];
+                            return id && sObjectMgr->GetCreatureTemplate(id) ? id : 0;
+                        });
+                    auto& member = region.members[effective];
+                    member.first = entry;
+                    ++member.second;
+                    entries.insert(effective);
+                }
+            }
         }
-        ready = !spawns.empty() && !tables[0].empty() && !tables[1].empty() &&
+        ready = !entries.empty() && !tables[0].empty() && !tables[1].empty() &&
             !tables[2].empty() && !tables[3].empty();
-        LOG_INFO("server.loading", "Bestiary: loaded {} Duskwood creature types; read-only catalogue", spawns.size());
+        LOG_INFO("server.loading", "Bestiary: loaded {} creature templates across {} regions/modes",
+            entries.size(), regions.size());
         if (!ready)
             LOG_ERROR("server.loading", "Bestiary: catalogue unavailable; check map data and loot table SELECT errors");
     }
 
-    Rows Zone(LocaleConstant locale)
+    Rows Locations(LocaleConstant locale)
     {
         Rows rows;
-        for (auto const& [entry, count] : spawns)
+        for (auto const& [key, region] : regions)
+        {
+            MapEntry const* map = sMapStore.LookupEntry(region.map);
+            MapDifficulty const* difficulty = GetMapDifficultyData(region.map, Difficulty(region.mode));
+            uint32 const capacity = difficulty && difficulty->maxPlayers ? difficulty->maxPlayers : map->maxPlayers;
+            std::string name = LocalName(map->name, locale);
+            if (AreaTableEntry const* area = sAreaTableStore.LookupEntry(region.zone))
+                name = LocalName(area->area_name, locale);
+            rows.push_back("L|" + std::to_string(key) + "|" + std::to_string(region.map) + "|" +
+                std::to_string(region.zone) + "|" + std::to_string(region.category) + "|" +
+                std::to_string(region.mode) + "|" + Bestiary::Escape(name) + "|" +
+                std::to_string(region.members.size()) + "|" + std::to_string(map->expansionID) + "|" +
+                std::to_string(capacity));
+        }
+        return rows;
+    }
+
+    Rows Zone(uint32 key, LocaleConstant locale)
+    {
+        Rows rows;
+        for (auto const& [entry, member] : regions.at(key).members)
         {
             CreatureTemplate const* mob = sObjectMgr->GetCreatureTemplate(entry);
-            std::string name = mob->Name;
-            if (CreatureLocale const* loc = sObjectMgr->GetCreatureLocale(entry))
+            if (!mob)
+                continue;
+            CreatureTemplate const* base = sObjectMgr->GetCreatureTemplate(member.first);
+            std::string name = base ? base->Name : mob->Name;
+            if (CreatureLocale const* loc = sObjectMgr->GetCreatureLocale(member.first))
                 ObjectMgr::GetLocaleString(loc->Name, locale, name);
             rows.push_back("M|" + std::to_string(entry) + "|" + Bestiary::Escape(name) + "|" +
                 std::to_string(mob->minlevel) + "|" + std::to_string(mob->maxlevel) + "|" +
-                std::to_string(mob->rank) + "|" + std::to_string(count) + "|" + std::to_string(mob->type));
+                std::to_string(mob->rank) + "|" + std::to_string(member.second) + "|" +
+                std::to_string(mob->type) + "|" + std::to_string(member.first));
         }
         return rows;
     }
@@ -240,32 +331,32 @@ public:
             Send(player, request.id, "X|NOT_READY");
             return false;
         }
-        Rows zone;
-        Rows const* rows = nullptr;
-        if (request.kind == 'Z' && request.target == 10)
-        {
-            zone = catalogue.Zone(player->GetSession()->GetSessionDbLocaleIndex());
-            rows = &zone;
-        }
-        else if (request.kind == 'D' && catalogue.spawns.count(request.target))
-        {
-            if (client.detail != request.target)
-            {
-                client.rows = catalogue.Detail(request.target, player->GetSession()->GetSessionDbLocaleIndex());
-                client.detail = request.target;
-            }
-            if (client.rows.size() >= 8192)
-            {
-                Send(player, request.id, "X|CATALOGUE_LIMIT");
-                return false;
-            }
-            rows = &client.rows;
-        }
-        if (!rows)
+        bool const valid = (request.kind == 'L' && request.target == 0) ||
+            (request.kind == 'Z' && catalogue.regions.count(request.target)) ||
+            (request.kind == 'D' && catalogue.entries.count(request.target));
+        if (!valid)
         {
             Send(player, request.id, "X|UNKNOWN_TARGET");
             return false;
         }
+        if (client.kind != request.kind || client.target != request.target)
+        {
+            LocaleConstant const locale = player->GetSession()->GetSessionDbLocaleIndex();
+            if (request.kind == 'L')
+                client.rows = catalogue.Locations(locale);
+            else if (request.kind == 'Z')
+                client.rows = catalogue.Zone(request.target, locale);
+            else
+                client.rows = catalogue.Detail(request.target, locale);
+            client.kind = request.kind;
+            client.target = request.target;
+        }
+        if (client.rows.size() >= 8192)
+        {
+            Send(player, request.id, "X|CATALOGUE_LIMIT");
+            return false;
+        }
+        Rows const* rows = &client.rows;
         std::size_t const pages = std::max<std::size_t>(1,
             (rows->size() + Bestiary::PageSize - 1) / Bestiary::PageSize);
         if (request.page >= pages)

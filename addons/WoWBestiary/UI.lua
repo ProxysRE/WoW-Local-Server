@@ -74,22 +74,42 @@ function A.BuildUI()
   local mobPane=Pane(f,206,-81,329,429)
   local detailPane=Pane(f,543,-81,380,429)
   Txt(zonePane,"Локации",12,-9,150,24)
-  local cont=Button(zonePane,"Восточные королевства",8,-42,166,25,function() end)
-  cont:Disable()
-  Txt(zonePane,"Открытый мир",10,-77,152,20,"GameFontHighlightSmall")
-  A.zoneButtons={}
-  for i,z in ipairs(A.zones) do
-    local b=Button(zonePane,z.name,8,-102-(i-1)*28,166,26,function()
-      A.selectedZone=z.id
-      A.selectedMob=nil; A.lootTab="loot"
-      WoWBestiarySaved.lastZone=z.id
-      FauxScrollFrame_SetOffset(A.mobScroll,0)
-      A.Refresh()
+  A.categoryButton=Button(zonePane,"Все регионы",8,-40,166,24,function()
+    local index=1
+    for i,category in ipairs(A.categories) do if category.id==A.category then index=i;break end end
+    A.category=A.categories[index%#A.categories+1].id
+    FauxScrollFrame_SetOffset(A.zoneScroll,0)
+    A.Refresh()
+  end)
+  local regionEdit=CreateFrame("EditBox",nil,zonePane,"InputBoxTemplate")
+  regionEdit:SetAutoFocus(false);regionEdit:SetSize(147,22)
+  regionEdit:SetPoint("TOPLEFT",zonePane,"TOPLEFT",19,-76)
+  regionEdit:SetMaxLetters(80)
+  regionEdit:SetScript("OnEscapePressed",function(self) self:ClearFocus() end)
+  regionEdit:SetScript("OnEnterPressed",function(self) self:ClearFocus() end)
+  regionEdit:SetScript("OnTextChanged",function(self,userInput)
+    if not userInput then return end
+    A.regionQuery=self:GetText() or ""
+    FauxScrollFrame_SetOffset(A.zoneScroll,0)
+    A.Refresh()
+  end)
+  A.regionSearch=regionEdit
+  A.zoneScroll=Scroll(zonePane,7,-110,160,234,9,26)
+  for _,row in ipairs(A.zoneScroll.rows) do
+    row:SetScript("OnClick",function(self) if self.zone then A.SelectZone(self.zone.id) end end)
+    row:SetScript("OnEnter",function(self)
+      if not self.zone then return end
+      GameTooltip:SetOwner(self,"ANCHOR_RIGHT")
+      GameTooltip:AddLine(A.RegionName(self.zone),1,.85,.35,true)
+      GameTooltip:AddLine("Видов существ: "..self.zone.count,.8,.8,.8)
+      GameTooltip:AddLine("Карта: "..self.zone.map.." • регион: "..self.zone.id,.6,.6,.6)
+      GameTooltip:Show()
     end)
-    A.zoneButtons[z.id]=b
+    row:SetScript("OnLeave",function() GameTooltip:Hide() end)
   end
-  Button(zonePane,"Обновить",8,-337,166,26,function() A.ReloadServer() end)
-  Txt(zonePane,"Каталог текущего сервера",11,-376,155,18,"GameFontDisableSmall")
+  A.regionCount=Txt(zonePane,"",10,-345,155,18,"GameFontDisableSmall")
+  Button(zonePane,"Обновить",8,-368,166,26,function() A.ReloadServer() end)
+  Txt(zonePane,"Поиск локации — поле сверху",10,-399,158,18,"GameFontDisableSmall")
   A.countLabel=Txt(mobPane,"Существа",13,-8,290,22)
   local edit=CreateFrame("EditBox",nil,mobPane,"InputBoxTemplate")
   A.search=edit
@@ -185,10 +205,19 @@ end
 function A.Refresh()
   if not A.frame then return end
   A.source:SetText(A.networkStatus or A.data.source)
-  for id,b in pairs(A.zoneButtons) do
-    local name="Локация "..id
-    for _,zone in ipairs(A.zones) do if zone.id==id then name=zone.name;break end end
-    b:SetText(id==A.selectedZone and ("> "..name) or name)
+  for _,category in ipairs(A.categories) do
+    if category.id==A.category then A.categoryButton:SetText(category.name);break end
+  end
+  local zones=A.GetVisibleZones()
+  A.regionCount:SetText("Локаций / режимов: "..#zones)
+  FauxScrollFrame_Update(A.zoneScroll,#zones,#A.zoneScroll.rows,26)
+  local zoneOffset=FauxScrollFrame_GetOffset(A.zoneScroll)
+  for i,row in ipairs(A.zoneScroll.rows) do
+    row.zone=zones[i+zoneOffset]
+    if row.zone then
+      row:Show()
+      row.label:SetText((row.zone.id==A.selectedZone and gold or white)..A.RegionName(row.zone).."|r")
+    else row:Hide() end
   end
   A.sortButton:SetText(A.sortOrder=="level" and "Уровень ↑" or "По названию")
   A.filterButton:SetText(A.rankFilter==-1 and "Все существа" or (A.ranks[A.rankFilter] or "Все"))
@@ -215,7 +244,8 @@ function A.Refresh()
     A.detailTitle:SetText(m.name)
     A.detailMeta:SetText((A.ranks[m.rank] or "Существо").." • ур. "..m.min..
       (m.min==m.max and "" or "-"..m.max).." • "..(A.types[m.creatureType] or "Без типа"))
-    A.detailID:SetText("ID: "..m.id.."    • точек появления: "..(m.spawns or "не импортированы"))
+    A.detailID:SetText("NPC: "..(m.base or m.id)..(m.base~=m.id and (" • шаблон: "..m.id) or "")..
+      " • точек: "..(m.spawns or "?"))
   end
   local loot=A.GetLoot(m,A.lootTab)
   if m and not m.detailLoaded then

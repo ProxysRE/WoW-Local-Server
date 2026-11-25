@@ -4,7 +4,7 @@
 ## Notes: Creatures and loot encyclopedia (AzerothCore data)
 ## Notes-ruRU: Справочник существ и добычи для WoW 3.3.5a
 ## Author: WoW Bestiary Project
-## Version: 0.2.0
+## Version: 0.3.0
 ## SavedVariables: WoWBestiarySaved
 Zones.lua
 Data.lua
