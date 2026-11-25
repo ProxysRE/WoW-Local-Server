@@ -102,6 +102,12 @@ def main():
     subprocess.run(["git", "-C", str(ROOT / "core"), "apply", "-"], input=patch, check=True)
     shutil.copytree(ROOT / "overlays/mod-local-qol",
                     ROOT / "core/modules/mod-local-qol", dirs_exist_ok=True)
+    shutil.copytree(ROOT / "overlays/mod-bot-buff",
+                    ROOT / "core/modules/mod-bot-buff", dirs_exist_ok=True)
+    shutil.copytree(ROOT / "overlays/mod-group-builder",
+                    ROOT / "core/modules/mod-group-builder", dirs_exist_ok=True)
+    shutil.copytree(ROOT / "overlays/mod-bestiary",
+                    ROOT / "core/modules/mod-bestiary", dirs_exist_ok=True)
     patch = (ROOT / "patches/temporary-quest-rewards.patch").read_text(encoding="utf-8").encode("utf-8")
     subprocess.run(["git", "-C", str(ROOT / "core"), "apply", "--check", "-"], input=patch, check=True)
     subprocess.run(["git", "-C", str(ROOT / "core"), "apply", "-"], input=patch, check=True)
@@ -115,6 +121,11 @@ def main():
     patch = (ROOT / "patches/playerbots-movement-loot.patch").read_text(encoding="utf-8").encode("utf-8")
     subprocess.run(["git", "-C", str(bots), "apply", "--check", "-"], input=patch, check=True)
     subprocess.run(["git", "-C", str(bots), "apply", "-"], input=patch, check=True)
+    transmog = ROOT / "core/modules/mod-transmog"
+    patch = (ROOT / "patches/wardrobe-loader.patch").read_text(encoding="utf-8").encode("utf-8")
+    subprocess.run(["git", "-C", str(transmog), "apply", "--check", "-"], input=patch, check=True)
+    subprocess.run(["git", "-C", str(transmog), "apply", "-"], input=patch, check=True)
+    shutil.copytree(ROOT / "overlays/mod-transmog", transmog, dirs_exist_ok=True)
     print(prepare_autobalance())
     print(prepare_teleporter())
 

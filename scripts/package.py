@@ -39,6 +39,7 @@ def main():
     copy_tree(ROOT / "patches", dist / "patches")
     copy_tree(ROOT / "overlays", dist / "overlays")
     copy_tree(ROOT / "profiles", dist / "profiles")
+    copy_tree(ROOT / "addons", dist / "Client/Interface/AddOns")
     auto_config = ROOT / "core/modules/mod-autobalance/conf/AutoBalance.conf.dist"
     (server / "configs/modules").mkdir(parents=True, exist_ok=True)
     shutil.copy2(auto_config, server / "configs/modules/AutoBalance.conf")
@@ -47,6 +48,10 @@ def main():
         (server / f"start-{exe}.bat").write_text(
             f'@echo off\ncd /d "%~dp0"\n{exe}.exe -c configs\\{exe}.conf\npause\n', encoding="ascii")
     summary = {"target": "Windows x64", "status": "compiled; in-game validation pending",
+               "bot_buff": "targeted .botbuff request without grouping; in-game validation pending",
+               "group_builder": "0.1.0 strict role/class/spec, soft ilvl and native invites; in-game validation pending",
+               "wardrobe": "0.1.1 set tooltip fix, server-backed addon, preview, outfits and slot persistence; in-game validation pending",
+               "bestiary": "all regions, loot filters and selective live rare map snapshots; addon 0.4.0; in-game validation pending",
                "autobalance": "instance player count including Playerbots; original creature levels; in-game validation pending",
                "playerbots_movement": "loot/remount arbitration and taxi protection/recovery; in-game validation pending",
                "temporary_progression": "session-only historical visits; in-game validation pending",
@@ -82,7 +87,7 @@ def main():
         shutil.copy2(auto_config, configs / "AutoBalance.conf")
         shutil.copy2(auto_config, configs / "AutoBalance.conf.dist")
         shutil.copy2(ROOT / "docs/AUTOBALANCE_RU.md", destination / "AUTOBALANCE_RU.md")
-    upgrade = dist / "Update_CorePlayerbots"
+    upgrade = dist / "Update_Wardrobe"
     runtime = upgrade / "Server"
     runtime.mkdir(parents=True)
     for pattern in ("*.exe", "*.dll"):
@@ -100,7 +105,19 @@ def main():
     shutil.copy2(ROOT / "core/src/server/apps/worldserver/worldserver.conf.dist", reference / "worldserver.conf.dist")
     shutil.copy2(ROOT / "core/modules/mod-playerbots/conf/playerbots.conf.dist", reference / "playerbots.conf.dist")
     shutil.copy2(ROOT / "scripts/install-core-update.ps1", upgrade / "Install-Update.ps1")
-    shutil.copy2(ROOT / "docs/CORE_PLAYERBOTS_UPDATE_RU.md", upgrade / "UPDATE_RU.md")
+    shutil.copy2(ROOT / "docs/LOCAL_SERVER_UPDATE_RU.md", upgrade / "UPDATE_RU.md")
+    shutil.copy2(ROOT / "docs/WARDROBE_RU.md", upgrade / "WARDROBE_RU.md")
+    shutil.copy2(ROOT / "docs/BESTIARY_RU.md", upgrade / "BESTIARY_RU.md")
+    shutil.copy2(ROOT / "docs/GROUP_BUILDER_RU.md", upgrade / "GROUP_BUILDER_RU.md")
+    shutil.copy2(ROOT / "docs/BOT_BUFF_RU.md", upgrade / "BOT_BUFF_RU.md")
+    copy_tree(ROOT / "overlays/mod-bot-buff", upgrade / "BotBuffSource/mod-bot-buff")
+    copy_tree(ROOT / "overlays/mod-group-builder", upgrade / "GroupBuilderSource/mod-group-builder")
+    shutil.copy2(ROOT / "docs/WARDROBE_SET_TOOLTIP_RU.md", upgrade / "WARDROBE_SET_TOOLTIP_RU.md")
+    shutil.copy2(ROOT / "docs/CORE_PLAYERBOTS_UPDATE_RU.md", upgrade / "CORE_PLAYERBOTS_UPDATE_RU.md")
+    copy_tree(ROOT / "addons", upgrade / "Client/Interface/AddOns")
+    copy_tree(ROOT / "overlays/mod-transmog", upgrade / "WardrobeSource/mod-transmog")
+    shutil.copy2(ROOT / "patches/wardrobe-loader.patch", upgrade / "WardrobeSource/wardrobe-loader.patch")
+    shutil.copy2(ROOT / "core/modules/mod-transmog/LICENSE", upgrade / "WardrobeSource/LICENSE")
     shutil.copy2(ROOT / "docs/UPGRADE_MANIFEST.json", upgrade / "UPGRADE_MANIFEST.json")
     # EXE-only packages are unsafe for a core revision that also needs SQL migrations.
     for obsolete in (visit, movement, update, balance):

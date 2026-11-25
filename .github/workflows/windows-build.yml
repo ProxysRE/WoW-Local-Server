@@ -2,12 +2,13 @@ name: Windows server build
 
 on:
   push:
-    branches: [main, feature/arena-1v1-playerbots, feature/starter-professions, feature/local-qol, feature/temporary-progression, fix/playerbots-movement-loot, feature/autobalance, feature/core-playerbots-update]
+    branches: [main, feature/arena-1v1-playerbots, feature/starter-professions, feature/local-qol, feature/temporary-progression, fix/playerbots-movement-loot, feature/autobalance, feature/core-playerbots-update, feature/wardrobe]
     paths:
       - sources.lock.json
       - scripts/**
       - patches/**
       - overlays/**
+      - addons/**
       - profiles/**
       - tests/**
       - .github/workflows/windows-build.yml
@@ -43,6 +44,24 @@ jobs:
         run: python3 tests/temporary_progression_integration_test.py
       - name: Verify loot and taxi regression scenarios
         run: python3 tests/playerbots_movement_test.py
+      - name: Verify wardrobe permissions and complete-outfit prices
+        run: python3 tests/wardrobe_test.py
+      - name: Verify addon on Lua 5.1
+        run: |
+          python3 -m pip install lupa==2.8
+          python3 tests/wardrobe_addon_test.py
+      - name: Verify group composition and native invitation lifecycle
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror -Ioverlays/mod-group-builder/src tests/group_builder_policy.cpp -o /tmp/group-builder-policy
+          /tmp/group-builder-policy
+          python3 tests/group_builder_invites_test.py
+          python3 tests/group_builder_addon_test.py
+      - name: Verify targeted buff requests
+        run: python3 tests/bot_buff_test.py
+      - name: Verify Bestiary and tooltip regressions
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror tests/protocol_test.cpp -o /tmp/bestiary-protocol-test
+          python3 -m unittest discover -s tests -p 'test_*.py' -v
   build:
     needs: arena-policy
     runs-on: windows-2022
@@ -111,11 +130,11 @@ jobs:
           path: dist/
           if-no-files-found: error
           retention-days: 30
-      - name: Upload core and Playerbots upgrade
+      - name: Upload shared server upgrade
         uses: actions/upload-artifact@v4
         with:
-          name: WoW-Core-Playerbots-Update-x64-${{ github.run_number }}
-          path: dist/Update_CorePlayerbots/
+          name: WoW-Local-Server-Update-x64-${{ github.run_number }}
+          path: dist/Update_Wardrobe/
           if-no-files-found: error
           retention-days: 30
       - name: Upload configure diagnostics on failure

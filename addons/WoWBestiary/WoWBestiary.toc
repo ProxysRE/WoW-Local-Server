@@ -1,0 +1,14 @@
+## Interface: 30300
+## Title: WoW Bestiary
+## Title-ruRU: Бестиарий Азерота
+## Notes: Creatures and loot encyclopedia (AzerothCore data)
+## Notes-ruRU: Справочник существ и добычи для WoW 3.3.5a
+## Author: WoW Bestiary Project
+## Version: 0.4.0
+## SavedVariables: WoWBestiarySaved
+Zones.lua
+Data.lua
+Core.lua
+Network.lua
+Map.lua
+UI.lua
