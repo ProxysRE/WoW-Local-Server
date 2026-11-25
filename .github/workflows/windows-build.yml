@@ -59,7 +59,9 @@ jobs:
       - name: Verify targeted buff requests
         run: python3 tests/bot_buff_test.py
       - name: Verify Bestiary and tooltip regressions
-        run: python3 -m unittest discover -s tests -p 'test_*.py' -v
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror tests/protocol_test.cpp -o /tmp/bestiary-protocol-test
+          python3 -m unittest discover -s tests -p 'test_*.py' -v
   build:
     needs: arena-policy
     runs-on: windows-2022
