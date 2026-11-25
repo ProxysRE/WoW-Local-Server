@@ -50,6 +50,16 @@ jobs:
         run: |
           python3 -m pip install lupa==2.8
           python3 tests/wardrobe_addon_test.py
+      - name: Verify group composition and native invitation lifecycle
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror -Ioverlays/mod-group-builder/src tests/group_builder_policy.cpp -o /tmp/group-builder-policy
+          /tmp/group-builder-policy
+          python3 tests/group_builder_invites_test.py
+          python3 tests/group_builder_addon_test.py
+      - name: Verify targeted buff requests
+        run: python3 tests/bot_buff_test.py
+      - name: Verify Bestiary and tooltip regressions
+        run: python3 -m unittest discover -s tests -p 'test_*.py' -v
   build:
     needs: arena-policy
     runs-on: windows-2022
@@ -118,10 +128,10 @@ jobs:
           path: dist/
           if-no-files-found: error
           retention-days: 30
-      - name: Upload wardrobe upgrade
+      - name: Upload shared server upgrade
         uses: actions/upload-artifact@v4
         with:
-          name: WoW-Wardrobe-Update-x64-${{ github.run_number }}
+          name: WoW-Local-Server-Update-x64-${{ github.run_number }}
           path: dist/Update_Wardrobe/
           if-no-files-found: error
           retention-days: 30

@@ -102,6 +102,10 @@ def main():
     subprocess.run(["git", "-C", str(ROOT / "core"), "apply", "-"], input=patch, check=True)
     shutil.copytree(ROOT / "overlays/mod-local-qol",
                     ROOT / "core/modules/mod-local-qol", dirs_exist_ok=True)
+    shutil.copytree(ROOT / "overlays/mod-bot-buff",
+                    ROOT / "core/modules/mod-bot-buff", dirs_exist_ok=True)
+    shutil.copytree(ROOT / "overlays/mod-group-builder",
+                    ROOT / "core/modules/mod-group-builder", dirs_exist_ok=True)
     shutil.copytree(ROOT / "overlays/mod-bestiary",
                     ROOT / "core/modules/mod-bestiary", dirs_exist_ok=True)
     patch = (ROOT / "patches/temporary-quest-rewards.patch").read_text(encoding="utf-8").encode("utf-8")
