@@ -66,7 +66,7 @@ public:
                     Field* f = result->Fetch();
                     int32 const reference = f[2].Get<int32>();
                     uint32 const ref = static_cast<uint32>(reference < 0 ? -int64(reference) : reference);
-                    uint32 const mode = std::max<uint32>(1, f[5].Get<uint32>());
+                    uint32 const mode = std::max<uint32>(1, f[5].Get<uint16>());
                     // Use the core's own validation, including rejected zero-chance ungrouped entries.
                     LootStoreItem candidate(f[1].Get<uint32>(), reference, f[3].Get<float>(),
                         f[4].Get<bool>(), mode, f[6].Get<uint8>(), f[7].Get<uint8>(), f[8].Get<uint8>());
@@ -74,8 +74,8 @@ public:
                         &LootTemplates_Pickpocketing, &LootTemplates_Reference};
                     if (candidate.IsValid(*stores[i], f[0].Get<uint32>()))
                         tables[i][f[0].Get<uint32>()].push_back({f[1].Get<uint32>(), ref,
-                            f[3].Get<float>(), f[4].Get<uint32>(), mode, f[6].Get<uint32>(),
-                            f[7].Get<uint32>(), f[8].Get<uint32>()});
+                            f[3].Get<float>(), f[4].Get<bool>() ? 1u : 0u, mode, f[6].Get<uint8>(),
+                            f[7].Get<uint8>(), f[8].Get<uint8>()});
                 } while (result->NextRow());
 
         if (QueryResult result = WorldDatabase.Query(
