@@ -1,0 +1,25 @@
+name: Group Builder policy and addon tests
+on:
+  push:
+    paths: ['overlays/mod-group-builder/**', 'addons/ACGroupBuilder/**', 'tests/group_builder*', '.github/workflows/group-builder-tests.yml']
+  pull_request:
+    paths: ['overlays/mod-group-builder/**', 'addons/ACGroupBuilder/**', 'tests/group_builder*', '.github/workflows/group-builder-tests.yml']
+permissions:
+  contents: read
+jobs:
+  policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install lupa==2.8
+      - name: Check global composition matching and strict filters
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror -Ioverlays/mod-group-builder/src tests/group_builder_policy.cpp -o /tmp/group-builder-policy
+          /tmp/group-builder-policy
+      - name: Check production invitation lifecycle
+        run: python tests/group_builder_invites_test.py
+      - name: Check actual addon in Lua 5.1
+        run: python tests/group_builder_addon_test.py
