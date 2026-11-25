@@ -117,6 +117,21 @@ bool Step(Player* bot, Player* player, Request& request)
             return true;
         }
     }
+    // An already satisfied request must not dismount or pause a bot for no reason.
+    while (!request.families.empty())
+    {
+        Id family = request.families.front();
+        auto ranks = Known(bot, family);
+        if (!ranks.empty() && !Covered(bot, player, family, ranks.front(), request.mode.empty()))
+            break;
+        request.families.pop_front();
+    }
+    if (request.families.empty())
+    {
+        Tell(player, request.casts ? "BotBuff: баффы наложены."
+                                   : "BotBuff: новых баффов не нужно либо подходящие заклинания не изучены.");
+        return true;
+    }
     if (bot->IsNonMeleeSpellCast(false))
     {
         request.delay = 500;

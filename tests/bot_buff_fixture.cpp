@@ -133,7 +133,9 @@ int main()
     assert(Covered(&bot, &target, Intellect, 1459, true));
     ai.casts = 0;
     r = Request{};
-    assert(Step(&bot, &target, r) && ai.casts == 0);
+    bot.mounted = true;
+    assert(Step(&bot, &target, r) && ai.casts == 0 && bot.mounted);
+    bot.mounted = false;
     AuraApplication ownKings{{Kings, 1}};
     target.auras = {{Kings, &ownKings}};
     assert(Covered(&bot, &target, Might, Might, true));
