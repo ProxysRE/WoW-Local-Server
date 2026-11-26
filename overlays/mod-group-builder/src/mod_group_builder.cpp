@@ -155,7 +155,7 @@ unsigned DetectRole(Player* player, unsigned spec)
                            ((cls == CLASS_DRUID || cls == CLASS_SHAMAN) && spec == 3);
         return healingTree ? Healer : Any;
     }
-    if (PlayerbotAI::IsDps(player))
+    if (PlayerbotAI::IsDps(player) && DamageTree(cls, spec))
         return Damage;
     return Any;
 }

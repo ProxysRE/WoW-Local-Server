@@ -40,6 +40,35 @@ struct Options
     unsigned size = 5, minLevel = 1, maxLevel = 80, ilvl = 0, guild = 0;
 };
 inline bool Class(unsigned cls) { return cls <= 11 && cls != 10; }
+enum PlayerClass : unsigned
+{
+    WarriorClass = 1, PaladinClass = 2, HunterClass = 3, RogueClass = 4, PriestClass = 5,
+    DeathKnightClass = 6, ShamanClass = 7, MageClass = 8, WarlockClass = 9, DruidClass = 11
+};
+// Active talent pages are 1-based; a generic damage strategy is not proof of a DPS build.
+inline bool DamageTree(unsigned cls, unsigned spec)
+{
+    switch (cls)
+    {
+        case HunterClass:
+        case RogueClass:
+        case MageClass:
+        case WarlockClass:
+            return true;
+        case WarriorClass:
+        case ShamanClass:
+        case DruidClass:
+            return spec == 1 || spec == 2;
+        case PaladinClass:
+        case PriestClass:
+            return spec == 3;
+        case DeathKnightClass:
+            // Blood DPS is valid. Tank equipment and AI are checked separately.
+            return spec >= 1 && spec <= 3;
+        default:
+            return false;
+    }
+}
 inline bool Number(std::string_view text, std::uint32_t& n)
 {
     if (text.empty())
