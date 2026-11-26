@@ -54,6 +54,7 @@ jobs:
         run: |
           g++ -std=c++20 -Wall -Wextra -Werror -Ioverlays/mod-group-builder/src tests/group_builder_policy.cpp -o /tmp/group-builder-policy
           /tmp/group-builder-policy
+          python3 tests/group_builder_roles_test.py
           python3 tests/group_builder_invites_test.py
           python3 tests/group_builder_addon_test.py
       - name: Verify targeted buff requests
