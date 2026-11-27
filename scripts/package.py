@@ -51,6 +51,7 @@ def main():
                "bot_buff": "targeted .botbuff request without grouping; in-game validation pending",
                "group_builder": "0.1.0 strict role/class/spec, soft ilvl and native invites; in-game validation pending",
                "wardrobe": "0.1.1 set tooltip fix, server-backed addon, preview, outfits and slot persistence; in-game validation pending",
+               "auction_market": "0.1.0 stock coverage, item supply rules and exact-quantity AHBot purchases; in-game validation pending",
                "bestiary": "all regions, loot filters and selective live rare map snapshots; addon 0.4.0; in-game validation pending",
                "autobalance": "instance player count including Playerbots; original creature levels; in-game validation pending",
                "playerbots_movement": "loot/remount arbitration and taxi protection/recovery; in-game validation pending",
@@ -115,6 +116,15 @@ def main():
     shutil.copy2(ROOT / "docs/WARDROBE_SET_TOOLTIP_RU.md", upgrade / "WARDROBE_SET_TOOLTIP_RU.md")
     shutil.copy2(ROOT / "docs/CORE_PLAYERBOTS_UPDATE_RU.md", upgrade / "CORE_PLAYERBOTS_UPDATE_RU.md")
     copy_tree(ROOT / "addons", upgrade / "Client/Interface/AddOns")
+    copy_tree(ROOT / "overlays/mod-ah-bot", upgrade / "AuctionMarketSource/mod-ah-bot")
+    shutil.copy2(ROOT / "patches/auction-market.patch", upgrade / "AuctionMarketSource/auction-market.patch")
+    shutil.copy2(ROOT / "docs/AUCTION_MARKET_RU.md", upgrade / "AUCTION_MARKET_RU.md")
+    market_configs = runtime / "configs/modules"
+    shutil.copy2(ROOT / "overlays/mod-ah-bot/conf/auction_market.conf.dist", market_configs)
+    market_sql_dir = runtime / "Source/data/sql/custom/db_world"
+    market_sql_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(ROOT / "overlays/mod-ah-bot/data/sql/db-world/2026_11_27_00_auction_market.sql", market_sql_dir)
+
     copy_tree(ROOT / "overlays/mod-transmog", upgrade / "WardrobeSource/mod-transmog")
     shutil.copy2(ROOT / "patches/wardrobe-loader.patch", upgrade / "WardrobeSource/wardrobe-loader.patch")
     shutil.copy2(ROOT / "core/modules/mod-transmog/LICENSE", upgrade / "WardrobeSource/LICENSE")

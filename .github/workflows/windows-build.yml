@@ -2,7 +2,7 @@ name: Windows server build
 
 on:
   push:
-    branches: [main, feature/arena-1v1-playerbots, feature/starter-professions, feature/local-qol, feature/temporary-progression, fix/playerbots-movement-loot, feature/autobalance, feature/core-playerbots-update, feature/wardrobe]
+    branches: [main, feature/arena-1v1-playerbots, feature/starter-professions, feature/local-qol, feature/temporary-progression, fix/playerbots-movement-loot, feature/autobalance, feature/core-playerbots-update, feature/wardrobe, feature/auction-market]
     paths:
       - sources.lock.json
       - scripts/**
@@ -56,6 +56,10 @@ jobs:
           /tmp/group-builder-policy
           python3 tests/group_builder_invites_test.py
           python3 tests/group_builder_addon_test.py
+      - name: Verify market stock and exact quantity purchases
+        run: |
+          python3 tests/auction_market_test.py
+          python3 tests/auction_market_addon_test.py
       - name: Verify targeted buff requests
         run: python3 tests/bot_buff_test.py
       - name: Verify Bestiary and tooltip regressions

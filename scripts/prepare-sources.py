@@ -126,6 +126,16 @@ def main():
     subprocess.run(["git", "-C", str(transmog), "apply", "--check", "-"], input=patch, check=True)
     subprocess.run(["git", "-C", str(transmog), "apply", "-"], input=patch, check=True)
     shutil.copytree(ROOT / "overlays/mod-transmog", transmog, dirs_exist_ok=True)
+    ahbot = ROOT / "core/modules/mod-ah-bot"
+    patch = (ROOT / "patches/auction-market.patch").read_text(encoding="utf-8").encode("utf-8")
+    subprocess.run(["git", "-C", str(ahbot), "apply", "--check", "-"], input=patch, check=True)
+    subprocess.run(["git", "-C", str(ahbot), "apply", "-"], input=patch, check=True)
+    shutil.copytree(ROOT / "overlays/mod-ah-bot", ahbot, dirs_exist_ok=True)
+    # Existing installations use the core custom updater; do not reimport upstream base SQL.
+    market_sql = ROOT / "overlays/mod-ah-bot/data/sql/db-world/2026_11_27_00_auction_market.sql"
+    target = ROOT / "core/data/sql/custom/db_world" / market_sql.name
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(market_sql, target)
     print(prepare_autobalance())
     print(prepare_teleporter())
 
