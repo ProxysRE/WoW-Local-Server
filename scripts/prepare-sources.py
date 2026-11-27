@@ -124,6 +124,11 @@ def main():
     patch = (ROOT / "patches/playerbots-movement-loot.patch").read_text(encoding="utf-8").encode("utf-8")
     subprocess.run(["git", "-C", str(bots), "apply", "--check", "-"], input=patch, check=True)
     subprocess.run(["git", "-C", str(bots), "apply", "-"], input=patch, check=True)
+    shutil.copytree(ROOT / "overlays/mod-bot-dk-skip",
+                    ROOT / "core/modules/mod-bot-dk-skip", dirs_exist_ok=True)
+    patch = (ROOT / "patches/bot-dk-skip-factory.patch").read_text(encoding="utf-8").encode("utf-8")
+    subprocess.run(["git", "-C", str(bots), "apply", "--check", "-"], input=patch, check=True)
+    subprocess.run(["git", "-C", str(bots), "apply", "-"], input=patch, check=True)
     transmog = ROOT / "core/modules/mod-transmog"
     patch = (ROOT / "patches/wardrobe-loader.patch").read_text(encoding="utf-8").encode("utf-8")
     subprocess.run(["git", "-C", str(transmog), "apply", "--check", "-"], input=patch, check=True)

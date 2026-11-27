@@ -43,7 +43,9 @@ jobs:
       - name: Verify temporary progression storage isolation
         run: python3 tests/temporary_progression_integration_test.py
       - name: Verify restored Lich King aura with missing caster
-        run: python3 tests/lich_king_whisper_test.py
+        run: |
+          python3 tests/lich_king_whisper_test.py
+          python3 tests/bot_dk_skip_test.py
       - name: Verify loot and taxi regression scenarios
         run: python3 tests/playerbots_movement_test.py
       - name: Verify wardrobe permissions and complete-outfit prices

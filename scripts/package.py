@@ -45,6 +45,8 @@ def main():
     shutil.copy2(auto_config, server / "configs/modules/AutoBalance.conf")
     market_config = ROOT / "overlays/mod-ah-bot/conf/auction_market.conf.dist"
     shutil.copy2(market_config, server / "configs/modules/auction_market.conf")
+    dk_config = ROOT / "overlays/mod-bot-dk-skip/conf/bot_dk_skip.conf.dist"
+    shutil.copy2(dk_config, server / "configs/modules/bot_dk_skip.conf")
     shutil.copy2(ROOT / "scripts/configure-local.ps1", server / "configure-local.ps1")
     for exe in ("authserver", "worldserver"):
         (server / f"start-{exe}.bat").write_text(
@@ -124,6 +126,11 @@ def main():
     market_configs = runtime / "configs/modules"
     shutil.copy2(market_config, market_configs / "auction_market.conf.dist")
     shutil.copy2(market_config, market_configs / "auction_market.conf")
+    shutil.copy2(dk_config, market_configs / "bot_dk_skip.conf.dist")
+    shutil.copy2(dk_config, market_configs / "bot_dk_skip.conf")
+    shutil.copy2(ROOT / "docs/BOT_DK_SKIP_RU.md", upgrade / "BOT_DK_SKIP_RU.md")
+    copy_tree(ROOT / "overlays/mod-bot-dk-skip", upgrade / "BotDKSkipSource/mod-bot-dk-skip")
+    shutil.copy2(ROOT / "patches/bot-dk-skip-factory.patch", upgrade / "BotDKSkipSource/bot-dk-skip-factory.patch")
     market_sql_dir = runtime / "Source/data/sql/custom/db_world"
     market_sql_dir.mkdir(parents=True, exist_ok=True)
     shutil.copy2(ROOT / "overlays/mod-ah-bot/data/sql/db-world/2026_11_27_00_auction_market.sql", market_sql_dir)
