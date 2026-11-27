@@ -11,6 +11,7 @@
 #include "PlayerbotAIConfig.h"
 #include "PlayerbotFactory.h"
 #include "PlayerbotGuildMgr.h"
+#include "Playerbots.h"
 #include "QueryResult.h"
 #include "ScriptMgr.h"
 #include "WorldSession.h"
@@ -28,6 +29,9 @@ namespace
 struct Settings
 {
     int stage = 8;
+    uint8 raidSize = 10;
+    bool heroic = false;
+    bool hardModes = false;
     bool reroll = true;
     uint32 interval = 200;
     bool accountsReady = false;
@@ -67,11 +71,6 @@ bool IsProtected(Player* player, Settings const& config)
     return false;
 }
 
-int ItemStage(Settings const& config, uint32 item)
-{
-    auto it = config.overrides.find(item);
-    return it == config.overrides.end() ? BotGear::StageFor(item) : it->second;
-}
 }
 
 // Also used before candidates enter the factory's limited-size equipment pool.
@@ -93,7 +92,10 @@ bool BotGearStageAllows(Player* player, ItemTemplate const* item)
     // Cosmetic slots have no combat power and are not replaced by the factory.
     if (item->InventoryType == INVTYPE_BODY || item->InventoryType == INVTYPE_TABARD)
         return true;
-    return BotGear::Allowed(config->stage, ItemStage(*config, item->ItemId));
+    auto override = config->overrides.find(item->ItemId);
+    if (override != config->overrides.end())
+        return BotGear::Allowed(config->stage, override->second);
+    return BotGear::ItemAllowed(item->ItemId, config->stage, config->raidSize, config->heroic, config->hardModes);
 }
 
 namespace
@@ -117,6 +119,15 @@ public:
             return;
         }
         config->reroll = sConfigMgr->GetOption<bool>("BotGearProgression.RerollOnStartup", true);
+        uint32 raidSize = sConfigMgr->GetOption<uint32>("BotGearProgression.CurrentTierRaidSize", 10);
+        if (raidSize != 10 && raidSize != 25)
+        {
+            LOG_ERROR("playerbots", "BotGearProgression: raid size must be 10 or 25; retaining previous settings.");
+            return;
+        }
+        config->raidSize = static_cast<uint8>(raidSize);
+        config->heroic = sConfigMgr->GetOption<bool>("BotGearProgression.CurrentTierHeroic", false);
+        config->hardModes = sConfigMgr->GetOption<bool>("BotGearProgression.CurrentTierHardModes", false);
         config->interval = std::clamp(sConfigMgr->GetOption<uint32>(
             "BotGearProgression.RerollIntervalMs", 200), 50u, 10000u);
         std::istringstream input(sConfigMgr->GetOption<std::string>("BotGearProgression.ItemOverrides", ""));
@@ -137,8 +148,9 @@ public:
             config->overrides[id] = stage;
         }
         settings.store(config);
-        LOG_INFO("playerbots", "BotGearProgression: stage {}, {} catalog entries; startup equipment reroll: {}.",
-            config->stage, std::size(BotGear::Catalog), config->reroll);
+        LOG_INFO("playerbots", "BotGearProgression: stage {}, raid size {}, heroic {}, hard modes {}, "
+            "{} source rules; startup equipment reroll: {}.", config->stage, config->raidSize, config->heroic,
+            config->hardModes, std::size(BotGear::Catalog), config->reroll);
     }
 
     void OnStartup() override

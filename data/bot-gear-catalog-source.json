@@ -1,8 +1,13 @@
 {
-  "repository": "Hoizame/AtlasLootClassic",
-  "commit": "8e99341e4e779328460bf7684c0d5b22ce50ddf1",
+  "repository": "nanderson11/AtlasLootEnhanced",
+  "commit": "092b7fcf14f0529dd54baebcb7118c8e53136d48",
+  "version": "5.11.04 / 2010-08-07",
+  "supplemental_repository": "Hoizame/AtlasLootClassic",
+  "supplemental_commit": "8e99341e4e779328460bf7684c0d5b22ce50ddf1",
+  "supplemental_scope": "Classic/TBC and original-3.3.5 crafting only; no Classic WotLK loot",
   "license": "GPL-2.0",
-  "items": 16142,
+  "items": 16140,
+  "sources": 17091,
   "unknown_items": "deny while stage limit is enabled",
   "crafting": "unclassified recipes conservatively use the final expansion stage"
 }

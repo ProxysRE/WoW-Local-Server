@@ -103,7 +103,50 @@ int main()
     assert(BotGear::StageFor(21869)>=8); // TBC craft must never leak into vanilla
     assert(!BotGear::Allowed(8,9) && BotGear::Allowed(8,8) && !BotGear::Allowed(8,-1));
     for (std::size_t i=1;i<std::size(BotGear::Catalog);++i)
-        assert(BotGear::Catalog[i-1].item<BotGear::Catalog[i].item);
+        assert(BotGear::Catalog[i-1].item<=BotGear::Catalog[i].item);
+    // Original Naxx10 and Naxx25, never the Classic heroic-dungeon catch-up sources.
+    assert(BotGear::ItemAllowed(39141,13,10,false,false));
+    assert(!BotGear::ItemAllowed(39719,13,10,false,false));
+    assert(BotGear::ItemAllowed(39719,13,25,false,false));
+    assert(!BotGear::ItemAllowed(40343,13,10,true,true));
+    assert(BotGear::ItemAllowed(39617,13,10,false,false));
+    assert(!BotGear::ItemAllowed(40550,13,10,false,false));
+    assert(BotGear::ItemAllowed(39719,14,10,false,false)); // previous tier fully unlocked
+    assert(!BotGear::ItemAllowed(45287,13,25,true,true)); // Ulduar never leaks into original heroics
+    assert(BotGear::ItemAllowed(45287,14,10,false,false));
+    assert(!BotGear::ItemAllowed(45117,14,10,true,true));
+    assert(BotGear::ItemAllowed(45117,14,25,false,false));
+    assert(!BotGear::ItemAllowed(46051,14,10,true,false)); // Algalon quest reward
+    assert(BotGear::ItemAllowed(46051,14,10,false,true));
+    assert(!BotGear::ItemAllowed(45293,14,10,true,false)); // heroic flag does not enable hard modes
+    assert(BotGear::ItemAllowed(45293,14,10,false,true));
+    assert(!BotGear::ItemAllowed(45135,14,10,true,true)); // 25 hard mode
+    assert(BotGear::ItemAllowed(45135,14,25,false,true));
+    assert(!BotGear::ItemAllowed(43995,13,10,true,false)); // Sartharion bonus-drake loot
+    assert(BotGear::ItemAllowed(43995,13,10,false,true));
+    assert(!BotGear::ItemAllowed(48483,15,10,false,false));
+    assert(BotGear::ItemAllowed(48483,15,10,true,false)); // trophy via 10 heroic tribute
+    assert(BotGear::ItemAllowed(48483,15,25,false,false)); // same item via 25 normal
+    assert(!BotGear::ItemAllowed(48488,15,25,false,true));
+    assert(BotGear::ItemAllowed(48488,15,25,true,false));
+    assert(!BotGear::ItemAllowed(51933,16,25,false,false)); // ICC10 heroic
+    assert(BotGear::ItemAllowed(51933,16,10,true,false));
+    assert(!BotGear::ItemAllowed(50737,16,10,true,true)); // ICC25 heroic
+    assert(BotGear::ItemAllowed(50737,16,25,true,false));
+    assert(BotGear::ItemAllowed(50737,17,10,false,false)); // previous tier heroic also unlocked
+    assert(!BotGear::ItemAllowed(54590,17,25,false,false));
+    assert(BotGear::ItemAllowed(54590,17,25,true,false));
+    assert(BotGear::ItemAllowed(50096,16,10,false,false)); // base T10 from badges
+    assert(!BotGear::ItemAllowed(51127,16,10,false,false));
+    assert(BotGear::ItemAllowed(51127,16,10,true,false));
+    assert(BotGear::ItemAllowed(51127,16,25,false,false));
+    assert(!BotGear::ItemAllowed(51310,16,10,true,true));
+    assert(!BotGear::ItemAllowed(51310,16,25,false,true));
+    assert(BotGear::ItemAllowed(51310,16,25,true,false));
+    assert(BotGear::SourceAllowed(6,10,false,false,{1,6,40,false,false})); // Classic unaffected
+    assert(BotGear::SourceAllowed(8,10,false,false,{1,8,25,false,false})); // TBC unaffected
+    assert(!BotGear::ItemAllowed(99999,13,25,true,true));
+    assert(BotGear::ItemAllowed(99999,-1,10,false,false));
     BotGearProgressionWorld world;BotGearProgressionPlayer hooks;
     world.OnAfterConfigLoad(false);world.OnStartup();
     Player bot;ObjectAccessor::players[1]=&bot;
@@ -136,6 +179,14 @@ int main()
     auto updated=std::make_shared<Settings>();updated->overrides[99999]=8;
     settings.store(updated);
     assert(BotGearStageAllows(&bot,&unknown));
+    updated=std::make_shared<Settings>();updated->stage=13;updated->raidSize=10;
+    settings.store(updated);
+    ItemTemplate naxx25{39719,4,1},naxx10{39141,4,1};
+    assert(!BotGearStageAllows(&bot,&naxx25) && BotGearStageAllows(&bot,&naxx10));
+    updated=std::make_shared<Settings>(*settings.load());updated->heroic=true;
+    settings.store(updated);assert(!BotGearStageAllows(&bot,&naxx25));
+    updated=std::make_shared<Settings>(*settings.load());updated->raidSize=25;
+    settings.store(updated);assert(BotGearStageAllows(&bot,&naxx25));
     updated=std::make_shared<Settings>();updated->stage=-1;
     settings.store(updated);
     assert(BotGearStageAllows(&bot,&late));
@@ -146,7 +197,7 @@ with tempfile.TemporaryDirectory() as directory:
     (tmp / "fixture.h").write_text(fixture)
     for header in ["Config.h", "DatabaseEnv.h", "Item.h", "Log.h", "ObjectAccessor.h", "Player.h",
                    "PlayerbotAI.h", "PlayerbotAIConfig.h", "PlayerbotFactory.h", "PlayerbotGuildMgr.h",
-                   "ScriptMgr.h", "WorldSession.h", "ItemTemplate.h", "QueryResult.h"]:
+                   "ScriptMgr.h", "WorldSession.h", "ItemTemplate.h", "QueryResult.h", "Playerbots.h"]:
         (tmp / header).write_text('#include "fixture.h"\n')
     source = ROOT / "overlays/mod-bot-gear-progression/src/BotGearProgression.cpp"
     (tmp / "test.cpp").write_text(f'#include "{source}"\n'+tests)
@@ -154,4 +205,4 @@ with tempfile.TemporaryDirectory() as directory:
     subprocess.run(["g++", "-std=c++20", "-Wall", "-Wextra", "-Werror", "-I"+str(tmp),
                     str(tmp / "test.cpp"), "-o", str(binary)], check=True)
     subprocess.run([str(binary)], check=True)
-print("Gear stages: source boundaries, sets, unknowns, reroll-once, friends, player/bot guilds, busy bots passed")
+print("Gear stages: original 3.3.5 sources, 10/25/heroic/hard modes, alternative tokens, previous tiers and reroll protections passed")

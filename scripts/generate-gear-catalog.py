@@ -1,7 +1,7 @@
-"""Build a positive item-source catalogue from pinned AtlasLootClassic data (GPLv2).
+"""Generate original 3.3.5 item sources, preserving alternative raid modes.
 
-Usage: PYTHONPATH=<lupa location> python scripts/generate-gear-catalog.py <checkout>
-Normal server builds use the checked-in catalogue and require neither Lua nor this checkout.
+Usage: python scripts/generate-gear-catalog.py <AtlasLoot-5.11.04-checkout> <Classic-checkout>
+Requires lupa 2.8 only for regeneration, not normal server builds.
 """
 from pathlib import Path
 import csv
@@ -11,178 +11,171 @@ import re
 import subprocess
 import sys
 from lupa.lua51 import LuaRuntime, lua_type
+import gear_catalog_classic_base as base
 
 ROOT = Path(__file__).resolve().parents[1]
-PIN = "8e99341e4e779328460bf7684c0d5b22ce50ddf1"
+PIN = "092b7fcf14f0529dd54baebcb7118c8e53136d48"
 BOOT = r'''
-local trans=setmetatable({},{__index=function(t,k)return tostring(k)end})
-AtlasLoot={CLASSIC_VERSION_NUM=1,BC_VERSION_NUM=2,WRATH_VERSION_NUM=3,Locales=trans,IngameLocales=trans}
-function AtlasLoot:GameVersion_LT(v,a,b) if VERSION<v then return a or true else return b end end
-function AtlasLoot:GameVersion_GE(v,a,b) if VERSION>=v then return a or true else return b end end
-function AtlasLoot:GetRetByFaction(a,b)return a end
-function AtlasLoot.ReturnForGameVersion(a,b,c) if VERSION==1 then return a elseif VERSION==2 then return b or a else return c or b or a end end
-function AtlasLoot:GetColoredClassNames()return trans end
-function GetFactionInfoByID(id)return tostring(id)end
-AtlasLoot.Data={Requirements=setmetatable({},{__index=function()return function()return ''end end}),Profession={GetColorSkillRankNoSpell=function()return ''end}}
-AtlasLoot.ItemDB={}; DB={}
-function AtlasLoot.ItemDB:Add() return DB end
-for _,name in ipairs({'AddDifficulty','AddItemTableType','AddExtraItemTableType','AddContentType'}) do DB[name]=function(self,key) return 'type:'..key end end
-function UnitFactionGroup()return 'Alliance'end
-C_Map={GetAreaInfo=function(id)return tostring(id)end}
-RAID_CLASS_COLORS=setmetatable({},{__index=function()return {colorStr='ffffffff'}end})
-function GetSpellInfo(id)return tostring(id)end
-function GetItemInfo(id)return tostring(id)end
-PRIVATE=setmetatable({},{__index=function(t,k)return k end})
-setmetatable(_G,{__index=function(t,k) return k end})
+TRANS=setmetatable({},{__index=function(t,k)return k end})
+function LibStub()return {GetLocale=function()return TRANS end}end
+function AtlasLoot_GetLocaleLibBabble()return TRANS end
+function GetSpellInfo(id)return tostring(id),'rank' end
+LOCALIZED_CLASS_NAMES_MALE=TRANS; LOCALIZED_CLASS_NAMES_FEMALE=TRANS
+AtlasLoot_Data={};AtlasLoot_CraftingDB={};AtlasLoot_CraftingData={};AtlasLootWishList={}
+setmetatable(_G,{__index=function(t,k)return function()end end})
 '''
 
-CLASSIC_PHASE = {1: 0, 2: 1, 2.5: 1, 3: 1, 4: 3, 5: 5, 6: 6}
-WRATH_SOURCES = {
-    "Ulduar": 14, "TrialoftheCrusader": 15, "TrialoftheChampion": 15,
-    "WrathOnyxiasLair": 15, "IcecrownCitadel": 16, "ForgeOfSouls": 16,
-    "PitOfSaron": 16, "HallsOfReflection": 16, "RubySanctum": 17,
-}
-COLLECTIONS = {
-    "WorldEpics": 0, "WorldEpicsBC": 8, "WorldEpicsWrath": 13,
-    "BadgeofJustice": 8, "BadgeofJustice4": 11, "BadgeofJusticeP5": 12, "BCCSunmote": 12,
-    "EmblemofHeroism": 13, "EmblemofValor": 13, "EmblemofConquest": 14,
-    "EmblemofTriumph": 15, "EmblemofFrost": 16, "DalaranVendor": 13,
-    "ZGSets": 3, "AQSets": 5, "SilithusAbyssal": 3, "AQOpening": 5,
-    "ScourgeInvasion": 6, "ScourgeInvasionWrath": 13, "Darkmoon": 1,
-}
-FACTIONS = {
-    "ZandalarTribe": 3, "CenarionCircle": 5, "BroodOfNozdormu": 5,
-    "AshtongueDeathsworn": 10, "TheScaleOfTheSands": 10, "ShatteredSunOffensive": 12,
-    "TheAshenVerdict": 16, "TheSilverCovenant": 14, "TheSunreavers": 14,
-}
+
+def load(path):
+    lua = LuaRuntime()
+    lua.execute(BOOT)
+    lua.execute(path.read_text(encoding="utf-8-sig"))
+    return lua, lua.globals().AtlasLoot_Data
 
 
-def build(source):
-    actual = subprocess.check_output(["git", "-C", str(source), "rev-parse", "HEAD"], text=True).strip()
+def context(name):
+    """Only positively identified tables; mixed summaries never create generic sources."""
+    size, heroic = (25 if "25Man" in name else 10), int("HEROIC" in name)
+    if name.startswith("Naxx80") or name.startswith(("Sartharion", "Malygos")):
+        return 13, size, 0, 0
+    if name.startswith("Ulduar"):
+        return 14, size, 0, int("Algalon" in name)
+    if name.startswith("TrialoftheCrusader"):
+        return 15, size, heroic, 0
+    if name.startswith("Onyxia_"):
+        return 15, size, 0, 0
+    if name.startswith("ICC"):
+        return 16, size, heroic, 0
+    if name.startswith("Halion"):
+        return 17, size, heroic, 0
+    if name.startswith("VaultofArchavon"):
+        stage = next((value for boss,value in [("Archavon",13),("Emalon",14),("Koralon",15),("Toravon",16)]
+                      if re.search("VaultofArchavon"+boss, name)), None)
+        # The first boss is named VaultofArchavon1 rather than ...Archavon1.
+        return (stage or 13), size, 0, 0
+    if name.startswith("Naxx"):
+        return 13, 10, 0, 0  # T7/T8 class sets: headers set the actual stage and size.
+    if name.startswith("T9"):
+        return 15, 0, 0, 0
+    if name.startswith("T10"):
+        return 16, 0, 0, 0
+    for prefix,stage,raid in [("EmblemofHeroism",13,0),("EmblemofValor",13,25),
+                              ("EmblemofConquest",14,25),("EmblemofTriumph",15,0),("EmblemofFrost",16,0)]:
+        if name.startswith(prefix):
+            return stage, raid, 0, 0
+    if name.startswith(("PvP", "Wrathful", "LakeWintergrasp")):
+        return 16, 0, 0, 0  # Each item is refined by its named season below; ambiguous rewards stay late.
+    if name.startswith(("TrialoftheChampion",)):
+        return 15, 0, 0, 0
+    if name.startswith(("FoS", "PoS", "HoR", "FHTrash")):
+        return 16, 0, 0, 0
+    if name.startswith("AshenVerdict"):
+        return 16, 0, 0, 0
+    if name.startswith(("TheSilverCovenant", "TheSunreavers")):
+        return 14, 0, 0, 0
+    prefixes = ("UtgardeKeep", "TheNexus", "AzjolNerub", "Ahnkahet", "DrakTharonKeep", "VioletHold",
+                "Gundrak", "HallsofStone", "HallsofLightning", "CoTStratholme", "UP", "Ocu",
+                "AllianceVanguard", "HordeExpedition", "ArgentCrusade", "FrenzyheartTribe", "KirinTor",
+                "KnightsoftheEbonBlade", "TheKaluak", "TheOracles", "TheSonsofHodir", "TheWyrmrestAccord",
+                "WinterfinRetreat", "VentureBay", "WorldEpicsWrath")
+    return (13, 0, 0, 0) if name.startswith(prefixes) else None
+
+
+def generate(legacy, classic):
+    actual = subprocess.check_output(["git", "-C", str(legacy), "rev-parse", "HEAD"], text=True).strip()
     if actual != PIN:
-        raise ValueError(f"Expected AtlasLootClassic {PIN}, got {actual}")
-    sets = {}
-    text = (source / "AtlasLootClassic/Data/ItemSet.lua").read_text()
-    for number, items in re.findall(r"\[(\d+)\]\s*=\s*\{\{([\d, ]+)\}", text):
-        sets[int(number)] = [int(v) for v in items.split(",") if v.strip()]
-    stages, origins = {}, {}
+        raise ValueError(f"Expected original AtlasLoot {PIN}, got {actual}")
+    supplemental, origins = base.build(classic)
+    rules = {}
 
-    def add(item, stage, origin):
-        if not isinstance(item, (int, float)) or not 0 < item < 100000:
+    def add(item, ctx, source):
+        if not isinstance(item, (int,float)) or not 0 < item < 100000:
             return
-        item = int(item)
-        if item not in stages or stage < stages[item]:
-            stages[item], origins[item] = stage, origin
+        key = (int(item), *ctx)
+        rules.setdefault(key, source)
 
-    def walk(table, version, stage, kind, origin):
-        if lua_type(table) != "table":
-            return
-        phase = table["ContentPhaseBC"] if version == 2 else table["ContentPhase"]
-        if phase:
-            stage = max(stage, (7+int(phase)) if version == 2 else CLASSIC_PHASE[phase])
-        kind = table["TableType"] or kind
-        for key, value in table.items():
-            if isinstance(key, str) and key.startswith("type:") and lua_type(value) == "table":
-                # An item row's slot is [1], item/set ID is [2]. Extra quest/currency fields are not items.
-                if key in ("type:Quest", "type:Price", "type:Set"):
-                    continue
-                for _, row in value.items():
-                    if lua_type(row) != "table":
-                        continue
-                    number = row[2]
-                    if kind == "type:Set":
-                        for item in sets.get(number, []):
-                            add(item, stage, origin)
-                    else:
-                        add(number, stage, origin)
-                        for faction in ("ATLASLOOT_IT_ALLIANCE", "ATLASLOOT_IT_HORDE"):
-                            add(row[faction], stage, origin)
-            elif key == "items" and lua_type(value) == "table":
-                for _, child in value.items():
-                    walk(child, version, stage, kind, origin)
-
-    for module in ("DungeonsAndRaids", "Factions", "Collections", "PvP"):
-        for suffix, version in (("", 1), ("-tbc", 2), ("-wrath", 3)):
-            path = source / f"AtlasLootClassic_{module}/data{suffix}.lua"
-            lua = LuaRuntime(unpack_returned_tuples=True)
-            lua.globals().VERSION = version
-            lua.execute(BOOT)
-            lua.execute("function LOAD(...) " + path.read_text() + '\nend\nLOAD("module",PRIVATE)')
-            for name, table in lua.globals().DB.items():
-                if lua_type(table) != "table":
-                    continue
-                stage = {1: 0, 2: 8, 3: 13}[version]
-                if module == "DungeonsAndRaids":
-                    if name == "VaultofArchavon":
-                        continue  # Mixed-tier shortcut; the same gear has raid/season sources below.
-                    stage = WRATH_SOURCES.get(name, stage) if version == 3 else stage
-                elif module == "Collections":
-                    if name not in COLLECTIONS:
-                        continue  # No Wrath Classic catch-up currencies, heirlooms or shared tier overviews.
-                    stage = COLLECTIONS[name]
-                elif module == "Factions":
-                    stage = FACTIONS.get(name, stage)
-                elif module == "PvP":
-                    match = re.match(r"ArenaS(\d+)PvP", name)
+    # The Classic branch supplies restored Naxx40 and TBC annotations, never WotLK loot.
+    for item,stage in supplemental.items():
+        if stage < 13:
+            add(item, (stage,0,0,0), "ClassicTBC/"+origins[item])
+    lua, tables = load(legacy / "Modules/WrathoftheLichKing/wrathofthelichking.lua")
+    for name, table in sorted(tables.items()):
+        if lua_type(table) != "table" or context(name) is None:
+            continue
+        initial = context(name)
+        ctx = initial
+        header = 0
+        rows = sorted((key,row) for key,row in table.items() if isinstance(key,(int,float)) and lua_type(row)=="table")
+        for _,row in rows:
+            item = row[2]
+            text = " ".join(str(row[i] or "") for i in range(4,7))
+            if item == 0:
+                header = int(row[1])
+                if name.startswith("Naxx") and not name.startswith("Naxx80"):
+                    match = re.search(r"#t([78])", text)
                     if match:
-                        stage = {1:8, 2:9, 3:10, 4:12, 5:13, 6:14, 7:15, 8:16}[int(match[1])]
-                    elif name == "Wintergrasp":
-                        stage = 16  # Mixed patch rewards; item phase metadata can lower these below.
-                walk(table, version, stage, "type:Item", f"{module}/{name}")
+                        ctx = (13 if match[1]=="7" else 14, 25 if "25 Man" in text else 10,0,0)
+                if "#j53#" in text or (name.startswith("Sartharion") and "Bonus Loot" in text):
+                    ctx = (*ctx[:3],1)
+                continue
+            if not isinstance(item,(int,float)):
+                continue
+            if name.startswith(("T9","T10")):
+                stage = initial[0]
+                if header < 8:
+                    add(item,(stage,0,0,0),name+"/base-badges")
+                elif header < 16:
+                    add(item,(stage,25,0,0),name+"/normal-token")
+                    add(item,(stage,10,1,0),name+"/heroic10-token")
+                else:
+                    add(item,(stage,25,1,0),name+"/heroic-token")
+                continue
+            if name.startswith(("PvP","Wrathful","LakeWintergrasp")):
+                season = next((stage for prefix,stage in [("Wrathful",16),("Relentless",15),("Furious",14),
+                              ("Deadly",13),("Hateful",13),("Savage",13)] if prefix in text),16)
+                add(item,(season,0,0,0),name)
+            elif name.startswith("KirinTor") and "Kirin Tor" in text:
+                # Mixed upgrade rings: no guess based on their item level.
+                add(item,(16,0,0,0),name+"/unresolved-ring-upgrade")
+            else:
+                add(item,ctx,name)
 
-    # Crafting has no reliable per-row phase metadata in Classic/TBC. Only recipes with
-    # a catalogued source may lower their output below the expansion's final stage.
-    recipes = {}
-    recipe_text = (source / "AtlasLootClassic/Data/Recipe.lua").read_text()
-    for item, spell in re.findall(r"\[(\d+)\]\s*=\s*\{\d+,\d+,(\d+)\}", recipe_text):
-        if int(item) in stages:
-            recipes[int(spell)] = stages[int(item)]
-    profession_text = (source / "AtlasLootClassic/Data/Profession.lua").read_text()
-    expansions = [(m.start(), m.group(1)) for m in re.finditer(r"PROFESSION_DATA\.(CLASSIC|BCC|WRATH)\s*=", profession_text)]
-    # The actual data table has the same assignment convention as RECIPE_DATA.
-    if not expansions:
-        expansions = [(m.start(), m.group(1)) for m in re.finditer(r"\w+\.(CLASSIC|BCC|WRATH)\s*=\s*\{", profession_text)]
-    crafts = []
-    for match in re.finditer(r"\[(\d+)\]\s*=\s*\{(\d+),\d+,\d+,\d+,\d+,\{([\d,]+)\}", profession_text):
-        expansion = next((v for pos,v in reversed(expansions) if pos < match.start()), "CLASSIC")
-        default = {"CLASSIC": 6, "BCC": 12, "WRATH": 17}[expansion]
-        crafts.append((int(match[1]), int(match[2]), [int(v) for v in match[3].split(",")], default))
-    for _ in range(5):
-        for spell, item, materials, default in crafts:
-            stage = recipes.get(spell, default)
-            stage = max([stage] + [stages[v] for v in materials if v in stages])
-            add(item, stage, "Craft/"+str(spell))
+    # Retain only original-3.3.5 crafting outputs, conservatively staging unresolved recipes.
+    craft_lua, crafts = load(legacy / "Modules/Crafting/crafting.lua")
+    craft_items = set()
+    for _,table in crafts.items():
+        if lua_type(table) != "table":
+            continue
+        for _,row in table.items():
+            if lua_type(row) != "table" or not isinstance(row[2],str) or not row[2].startswith("s"):
+                continue
+            try:
+                craft_items.add(int(row[3]))
+            except (TypeError,ValueError):
+                pass
+    for item in craft_items:
+        if item in supplemental and origins[item].startswith("Craft/"):
+            add(item,(supplemental[item],0,0,0),"Original335/"+origins[item])
 
-    # Wrath phase metadata also covers crafted and PvP items. It is an item-level
-    # release constraint, so a shared vendor/secondary source must never lower it.
-    phase_text = (source / "AtlasLootClassic/Data/ContentPhase.lua").read_text()
-    wrath = phase_text.split("if AtlasLoot:GameVersion_EQ(AtlasLoot.WRATH_VERSION_NUM) then",1)[1]
-    for item, phase in re.findall(r"\[(\d+)\]\s*=\s*([234])\b", wrath):
-        item, stage = int(item), 12+int(phase)
-        if item in stages and not origins[item].startswith("DungeonsAndRaids/"):
-            stages[item] = max(stages[item], stage)
-    # Shared TBC insignia tables include the patch-2.4 upgrade in every season.
-    for item in (37864,37865):
-        if item in stages:
-            stages[item] = 12
-
-    rows = sorted(stages.items())
-    output = ROOT / "overlays/mod-bot-gear-progression/src/GearCatalog.inc"
-    output.write_text("// Generated from Hoizame/AtlasLootClassic " + PIN + "; GPL-2.0-or-later.\n" +
-                      "// item ID, minimum content stage (no item-level thresholds).\n" +
-                      "".join(f"    {{{item}, {stage}}},\n" for item,stage in rows))
-    buf = io.StringIO()
-    writer = csv.writer(buf, lineterminator="\n")
-    writer.writerow(["item", "stage", "source"])
-    writer.writerows((item, stage, origins[item]) for item,stage in rows)
-    (ROOT / "data/bot-gear-catalog.csv").write_text(buf.getvalue())
+    rows = sorted(rules)
+    target = ROOT / "overlays/mod-bot-gear-progression/src/GearCatalog.inc"
+    target.write_text("// Original AtlasLoot 5.11.04: "+PIN+"; GPL-2.0-or-later.\n"
+                      "// item, stage, raid size (0=nonraid), heroic, hard mode. Alternative sources are separate rows.\n"+
+                      "".join("    {"+", ".join(map(str,row))+"},\n" for row in rows))
+    out=io.StringIO();writer=csv.writer(out,lineterminator="\n")
+    writer.writerow(["item","stage","raid_size","heroic","hard_mode","source"])
+    writer.writerows((*row,rules[row]) for row in rows)
+    (ROOT / "data/bot-gear-catalog.csv").write_text(out.getvalue())
     (ROOT / "data/bot-gear-catalog-source.json").write_text(json.dumps({
-        "repository": "Hoizame/AtlasLootClassic", "commit": PIN, "license": "GPL-2.0",
-        "items": len(rows), "unknown_items": "deny while stage limit is enabled",
-        "crafting": "unclassified recipes conservatively use the final expansion stage"
-    }, indent=2)+"\n")
-    print(f"Generated {len(rows)} item rules")
+        "repository":"nanderson11/AtlasLootEnhanced", "commit":PIN,"version":"5.11.04 / 2010-08-07",
+        "supplemental_repository":"Hoizame/AtlasLootClassic", "supplemental_commit":base.PIN,
+        "supplemental_scope":"Classic/TBC and original-3.3.5 crafting only; no Classic WotLK loot",
+        "license":"GPL-2.0", "items":len({row[0] for row in rows}),"sources":len(rows),
+        "unknown_items":"deny while stage limit is enabled",
+        "crafting":"unclassified recipes conservatively use the final expansion stage"
+    },indent=2)+"\n")
+    print(f"Generated {len(rows)} source rules for {len({row[0] for row in rows})} items")
 
 
 if __name__ == "__main__":
-    build(Path(sys.argv[1]).resolve())
+    generate(Path(sys.argv[1]).resolve(),Path(sys.argv[2]).resolve())

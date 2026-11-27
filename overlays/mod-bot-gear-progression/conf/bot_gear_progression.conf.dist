@@ -18,6 +18,19 @@
 # This setting does not change any character's Individual Progression stage.
 BotGearProgression.Stage = 8
 
+# WotLK raid sources of the CURRENT stage only. Earlier stages are fully unlocked.
+# 10 = allow 10-player sources, 25 = allow both 10- and 25-player sources.
+# Classic 20/40 and TBC raids are unaffected. Dungeon heroics are unaffected.
+BotGearProgression.CurrentTierRaidSize = 10
+
+# Also allow raid heroic sources up to the selected size (ToC, ICC, Ruby Sanctum).
+# Naxxramas has no separate heroic raid difficulty in original 3.3.5.
+BotGearProgression.CurrentTierHeroic = 0
+
+# Allow Ulduar hard-mode/Algalon rewards and Sartharion bonus-drake loot.
+# Independent of the Heroic setting; only affects the current stage.
+BotGearProgression.CurrentTierHardModes = 0
+
 # One complete equipment reroll per random bot, per worldserver process.
 # Existing friends of real players and members of player-led guilds are exempt.
 BotGearProgression.RerollOnStartup = 1
@@ -27,5 +40,6 @@ BotGearProgression.RerollIntervalMs = 200
 
 # Optional exact item corrections: itemID:minimumStage, separated by commas.
 # Stage 99 explicitly bans an item while the module is enabled.
+# An override is an explicit nonraid exception and bypasses raid-mode restrictions.
 # Example: "28770:8,32471:10". Unknown items are otherwise not generated.
 BotGearProgression.ItemOverrides = ""

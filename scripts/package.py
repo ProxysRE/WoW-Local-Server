@@ -57,7 +57,7 @@ def main():
                "bot_buff": "targeted .botbuff request without grouping; in-game validation pending",
                "group_builder": "0.1.0 strict role/class/spec, soft ilvl and native invites; in-game validation pending",
                "wardrobe": "0.1.1 set tooltip fix, server-backed addon, preview, outfits and slot persistence; in-game validation pending",
-               "bot_gear_progression": "0.1.0 item-source stages, startup reroll and friend/player-guild protection; in-game validation pending",
+               "bot_gear_progression": "0.2.0 original 3.3.5 WotLK sources, 10/25/heroic/hard modes, startup reroll and friend/player-guild protection; in-game validation pending",
                "auction_market": "0.1.1 stock coverage, item supply rules and exact-quantity AHBot purchases; in-game validation pending",
                "bestiary": "all regions, loot filters and selective live rare map snapshots; addon 0.4.0; in-game validation pending",
                "autobalance": "instance player count including Playerbots; original creature levels; in-game validation pending",
