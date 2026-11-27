@@ -4,6 +4,7 @@
 #include "AuctionHouseMgr.h"
 #include "Config.h"
 #include "DatabaseEnv.h"
+#include "QueryResult.h"
 #include "Item.h"
 #include "ItemTemplate.h"
 #include "Log.h"

@@ -5,7 +5,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 headers = ["Common.h", "AuctionHouseBotConfig.h", "AuctionHouseBotCommon.h", "AuctionHouseMgr.h",
-           "Config.h", "DatabaseEnv.h", "Item.h", "ItemTemplate.h", "Log.h", "ObjectMgr.h", "Random.h",
+           "Config.h", "DatabaseEnv.h", "QueryResult.h", "Item.h", "ItemTemplate.h", "Log.h", "ObjectMgr.h", "Random.h",
            "DBCStores.h", "SpellInfo.h", "SpellMgr.h", "AuctionHouseSearcher.h", "CharacterCache.h", "Chat.h", "Creature.h", "Mail.h", "Player.h",
            "ScriptMgr.h", "Util.h", "WorldSession.h"]
 with tempfile.TemporaryDirectory() as folder:

@@ -94,7 +94,7 @@ struct FakeObjectMgr
 };
 using ObjectMgr=FakeObjectMgr;inline FakeObjectMgr objectMgr;inline auto sObjectMgr=&objectMgr;
 inline ItemTemplate const* Item::GetTemplate() const{return sObjectMgr->GetItemTemplate(id);}
-struct FakeCache {uint32 GetCharacterAccountIdByGuid(uint32 id){return id==99?102:1;}};
+struct FakeCache {uint32 GetCharacterAccountIdByGuid(ObjectGuid id){return id.GetCounter()==99?102:1;}};
 inline FakeCache cache;inline auto sCharacterCache=&cache;
 struct WorldPacket {std::string text;};
 inline std::vector<std::string> replies;

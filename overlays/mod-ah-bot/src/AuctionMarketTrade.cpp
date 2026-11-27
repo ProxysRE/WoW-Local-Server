@@ -67,7 +67,7 @@ bool OfferFor(Player* player, AuctionEntry const* auction, AuctionMarket::Offer&
     if (!auction || !gBotsId.count(auction->owner.GetCounter()) || auction->bidder || auction->bid ||
         auction->expire_time <= time(nullptr) || !auction->itemCount || !auction->buyout ||
         auction->buyout % auction->itemCount ||
-        sCharacterCache->GetCharacterAccountIdByGuid(auction->owner.GetCounter()) ==
+        sCharacterCache->GetCharacterAccountIdByGuid(auction->owner) ==
             player->GetSession()->GetAccountId())
         return false;
     Item* item = sAuctionMgr->GetAItem(auction->item_guid);
