@@ -111,6 +111,9 @@ def main():
     patch = (ROOT / "patches/temporary-quest-rewards.patch").read_text(encoding="utf-8").encode("utf-8")
     subprocess.run(["git", "-C", str(ROOT / "core"), "apply", "--check", "-"], input=patch, check=True)
     subprocess.run(["git", "-C", str(ROOT / "core"), "apply", "-"], input=patch, check=True)
+    patch = (ROOT / "patches/lich-king-whisper-null-caster.patch").read_text(encoding="utf-8").encode("utf-8")
+    subprocess.run(["git", "-C", str(ROOT / "core"), "apply", "--check", "-"], input=patch, check=True)
+    subprocess.run(["git", "-C", str(ROOT / "core"), "apply", "-"], input=patch, check=True)
     shutil.copytree(ROOT / "overlays/core", ROOT / "core", dirs_exist_ok=True)
     progression = ROOT / "core/modules/mod-individual-progression"
     patch = (ROOT / "patches/temporary-progression.patch").read_text(encoding="utf-8").encode("utf-8")
