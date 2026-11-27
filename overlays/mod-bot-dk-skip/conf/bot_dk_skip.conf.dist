@@ -1,0 +1,6 @@
+[worldserver]
+
+# Finish the DK introduction for headless characters on automatic Playerbot accounts.
+# Includes existing bots still on the DK introduction map, on their next login.
+# Human accounts and DKs already outside that map are not affected.
+BotDKSkip.Enable = 1

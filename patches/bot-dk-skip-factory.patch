@@ -1,0 +1,26 @@
+--- a/src/Bot/Factory/PlayerbotFactory.cpp
++++ b/src/Bot/Factory/PlayerbotFactory.cpp
+@@ -823,8 +823,15 @@
+     }
+ }
+ 
++// Local mod-bot-dk-skip is included by prepare-sources.py in this server build.
++bool IsBotDKSkipEnabled(Player* player);
++void CompleteBotDKIntroduction(Player* player);
++
+ void PlayerbotFactory::Randomize(bool incremental)
+ {
++    if (IsBotDKSkipEnabled(bot))
++        level = std::max<uint32>(level, 58);
++
+     // if (sPlayerbotAIConfig.DisableRandomLevels)
+     //     return;
+ 
+@@ -861,6 +868,7 @@
+     bot->GiveLevel(level);
+     bot->InitStatsForLevel(true);
+     CancelAuras();
++    CompleteBotDKIntroduction(bot);
+     // bot->SaveToDB(false, false);
+     if (pmo)
+         pmo->finish();

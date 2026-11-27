@@ -111,6 +111,9 @@ def main():
     patch = (ROOT / "patches/temporary-quest-rewards.patch").read_text(encoding="utf-8").encode("utf-8")
     subprocess.run(["git", "-C", str(ROOT / "core"), "apply", "--check", "-"], input=patch, check=True)
     subprocess.run(["git", "-C", str(ROOT / "core"), "apply", "-"], input=patch, check=True)
+    patch = (ROOT / "patches/lich-king-whisper-null-caster.patch").read_text(encoding="utf-8").encode("utf-8")
+    subprocess.run(["git", "-C", str(ROOT / "core"), "apply", "--check", "-"], input=patch, check=True)
+    subprocess.run(["git", "-C", str(ROOT / "core"), "apply", "-"], input=patch, check=True)
     shutil.copytree(ROOT / "overlays/core", ROOT / "core", dirs_exist_ok=True)
     progression = ROOT / "core/modules/mod-individual-progression"
     patch = (ROOT / "patches/temporary-progression.patch").read_text(encoding="utf-8").encode("utf-8")
@@ -121,11 +124,31 @@ def main():
     patch = (ROOT / "patches/playerbots-movement-loot.patch").read_text(encoding="utf-8").encode("utf-8")
     subprocess.run(["git", "-C", str(bots), "apply", "--check", "-"], input=patch, check=True)
     subprocess.run(["git", "-C", str(bots), "apply", "-"], input=patch, check=True)
+    shutil.copytree(ROOT / "overlays/mod-bot-dk-skip",
+                    ROOT / "core/modules/mod-bot-dk-skip", dirs_exist_ok=True)
+    patch = (ROOT / "patches/bot-dk-skip-factory.patch").read_text(encoding="utf-8").encode("utf-8")
+    subprocess.run(["git", "-C", str(bots), "apply", "--check", "-"], input=patch, check=True)
+    subprocess.run(["git", "-C", str(bots), "apply", "-"], input=patch, check=True)
+    shutil.copytree(ROOT / "overlays/mod-bot-gear-progression",
+                    ROOT / "core/modules/mod-bot-gear-progression", dirs_exist_ok=True)
+    patch = (ROOT / "patches/bot-gear-progression.patch").read_text(encoding="utf-8").encode("utf-8")
+    subprocess.run(["git", "-C", str(bots), "apply", "--check", "-"], input=patch, check=True)
+    subprocess.run(["git", "-C", str(bots), "apply", "-"], input=patch, check=True)
     transmog = ROOT / "core/modules/mod-transmog"
     patch = (ROOT / "patches/wardrobe-loader.patch").read_text(encoding="utf-8").encode("utf-8")
     subprocess.run(["git", "-C", str(transmog), "apply", "--check", "-"], input=patch, check=True)
     subprocess.run(["git", "-C", str(transmog), "apply", "-"], input=patch, check=True)
     shutil.copytree(ROOT / "overlays/mod-transmog", transmog, dirs_exist_ok=True)
+    ahbot = ROOT / "core/modules/mod-ah-bot"
+    patch = (ROOT / "patches/auction-market.patch").read_text(encoding="utf-8").encode("utf-8")
+    subprocess.run(["git", "-C", str(ahbot), "apply", "--check", "-"], input=patch, check=True)
+    subprocess.run(["git", "-C", str(ahbot), "apply", "-"], input=patch, check=True)
+    shutil.copytree(ROOT / "overlays/mod-ah-bot", ahbot, dirs_exist_ok=True)
+    # Existing installations use the core custom updater; do not reimport upstream base SQL.
+    market_sql = ROOT / "overlays/mod-ah-bot/data/sql/db-world/2026_11_27_00_auction_market.sql"
+    target = ROOT / "core/data/sql/custom/db_world" / market_sql.name
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(market_sql, target)
     print(prepare_autobalance())
     print(prepare_teleporter())
 

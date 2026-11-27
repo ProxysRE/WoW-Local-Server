@@ -1,0 +1,6 @@
+## Interface: 30300
+## Title: AC Auction Market
+## Notes: Покупка заданного количества товаров AHBot
+## Author: ProxysRE
+## Version: 0.1.1
+ACAuctionMarket.lua

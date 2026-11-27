@@ -2,7 +2,7 @@ name: Windows server build
 
 on:
   push:
-    branches: [main, feature/arena-1v1-playerbots, feature/starter-professions, feature/local-qol, feature/temporary-progression, fix/playerbots-movement-loot, feature/autobalance, feature/core-playerbots-update, feature/wardrobe]
+    branches: [main, feature/arena-1v1-playerbots, feature/starter-professions, feature/local-qol, feature/temporary-progression, fix/playerbots-movement-loot, feature/autobalance, feature/core-playerbots-update, feature/wardrobe, feature/auction-market]
     paths:
       - sources.lock.json
       - scripts/**
@@ -42,6 +42,11 @@ jobs:
           /tmp/ip-temp-policy
       - name: Verify temporary progression storage isolation
         run: python3 tests/temporary_progression_integration_test.py
+      - name: Verify restored Lich King aura with missing caster
+        run: |
+          python3 tests/lich_king_whisper_test.py
+          python3 tests/bot_dk_skip_test.py
+          python3 tests/bot_gear_progression_test.py
       - name: Verify loot and taxi regression scenarios
         run: python3 tests/playerbots_movement_test.py
       - name: Verify wardrobe permissions and complete-outfit prices
@@ -56,6 +61,10 @@ jobs:
           /tmp/group-builder-policy
           python3 tests/group_builder_invites_test.py
           python3 tests/group_builder_addon_test.py
+      - name: Verify market stock and exact quantity purchases
+        run: |
+          python3 tests/auction_market_test.py
+          python3 tests/auction_market_addon_test.py
       - name: Verify targeted buff requests
         run: python3 tests/bot_buff_test.py
       - name: Verify Bestiary and tooltip regressions

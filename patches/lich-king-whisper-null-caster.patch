@@ -1,0 +1,14 @@
+--- a/src/server/scripts/EasternKingdoms/zone_the_scarlet_enclave.cpp
++++ b/src/server/scripts/EasternKingdoms/zone_the_scarlet_enclave.cpp
+@@ -423,8 +423,9 @@
+     {
+         if (Player* target = GetTarget()->ToPlayer())
+         {
+-            //spell 58208-58223
+-            GetCaster()->CastSpell(target, urand(SPELL_LICHKINGDK001, SPELL_LICHKINGDK016), true);
++            // A saved aura can be restored before its original caster is available.
++            if (Unit* caster = GetCaster())
++                caster->CastSpell(target, urand(SPELL_LICHKINGDK001, SPELL_LICHKINGDK016), true);
+         }
+     }
+ 

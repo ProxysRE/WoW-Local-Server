@@ -1,0 +1,10 @@
+[worldserver]
+# Coverage-first stock controller and exact-quantity purchases from AHBot lots.
+# 0 restores the upstream seller; the lot-counting bug fix remains active.
+AuctionHouseBot.Market.Enable = 1
+# Per auction house, counting all configured AHBot sellers together.
+# In market mode this replaces mod_auctionhousebot.maxitems and quality quotas.
+# Existing seller/buyer switches, identity, price multipliers and binding filters remain in effect.
+AuctionHouseBot.Market.MaxListings = 6000
+# Per-item supply rules are in acore_world.mod_auctionmarket_item.
+# No expansion/progression gate. Crafted goods are included in market mode.
