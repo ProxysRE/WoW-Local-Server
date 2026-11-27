@@ -47,6 +47,8 @@ def main():
     shutil.copy2(market_config, server / "configs/modules/auction_market.conf")
     dk_config = ROOT / "overlays/mod-bot-dk-skip/conf/bot_dk_skip.conf.dist"
     shutil.copy2(dk_config, server / "configs/modules/bot_dk_skip.conf")
+    gear_config = ROOT / "overlays/mod-bot-gear-progression/conf/bot_gear_progression.conf.dist"
+    shutil.copy2(gear_config, server / "configs/modules/bot_gear_progression.conf")
     shutil.copy2(ROOT / "scripts/configure-local.ps1", server / "configure-local.ps1")
     for exe in ("authserver", "worldserver"):
         (server / f"start-{exe}.bat").write_text(
@@ -55,7 +57,8 @@ def main():
                "bot_buff": "targeted .botbuff request without grouping; in-game validation pending",
                "group_builder": "0.1.0 strict role/class/spec, soft ilvl and native invites; in-game validation pending",
                "wardrobe": "0.1.1 set tooltip fix, server-backed addon, preview, outfits and slot persistence; in-game validation pending",
-               "auction_market": "0.1.0 stock coverage, item supply rules and exact-quantity AHBot purchases; in-game validation pending",
+               "bot_gear_progression": "0.1.0 item-source stages, startup reroll and friend/player-guild protection; in-game validation pending",
+               "auction_market": "0.1.1 stock coverage, item supply rules and exact-quantity AHBot purchases; in-game validation pending",
                "bestiary": "all regions, loot filters and selective live rare map snapshots; addon 0.4.0; in-game validation pending",
                "autobalance": "instance player count including Playerbots; original creature levels; in-game validation pending",
                "playerbots_movement": "loot/remount arbitration and taxi protection/recovery; in-game validation pending",
@@ -131,6 +134,12 @@ def main():
     shutil.copy2(ROOT / "docs/BOT_DK_SKIP_RU.md", upgrade / "BOT_DK_SKIP_RU.md")
     copy_tree(ROOT / "overlays/mod-bot-dk-skip", upgrade / "BotDKSkipSource/mod-bot-dk-skip")
     shutil.copy2(ROOT / "patches/bot-dk-skip-factory.patch", upgrade / "BotDKSkipSource/bot-dk-skip-factory.patch")
+    shutil.copy2(gear_config, market_configs / "bot_gear_progression.conf.dist")
+    shutil.copy2(gear_config, market_configs / "bot_gear_progression.conf")
+    shutil.copy2(ROOT / "docs/BOT_GEAR_PROGRESSION_RU.md", upgrade / "BOT_GEAR_PROGRESSION_RU.md")
+    copy_tree(ROOT / "overlays/mod-bot-gear-progression", upgrade / "BotGearProgressionSource/mod-bot-gear-progression")
+    shutil.copy2(ROOT / "patches/bot-gear-progression.patch", upgrade / "BotGearProgressionSource/bot-gear-progression.patch")
+    copy_tree(ROOT / "data", upgrade / "BotGearProgressionSource/data")
     market_sql_dir = runtime / "Source/data/sql/custom/db_world"
     market_sql_dir.mkdir(parents=True, exist_ok=True)
     shutil.copy2(ROOT / "overlays/mod-ah-bot/data/sql/db-world/2026_11_27_00_auction_market.sql", market_sql_dir)

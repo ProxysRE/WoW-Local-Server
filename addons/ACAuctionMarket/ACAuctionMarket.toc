@@ -2,5 +2,5 @@
 ## Title: AC Auction Market
 ## Notes: Покупка заданного количества товаров AHBot
 ## Author: ProxysRE
-## Version: 0.1.0
+## Version: 0.1.1
 ACAuctionMarket.lua

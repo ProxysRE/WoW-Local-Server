@@ -1,0 +1,71 @@
+--- a/src/Bot/Factory/PlayerbotFactory.cpp
++++ b/src/Bot/Factory/PlayerbotFactory.cpp
+@@ -582,6 +582,9 @@
+     return bot->HasSpell(knownSpellId);
+ }
+ 
++bool BotGearStageActive(Player* player);
++bool BotGearStageAllows(Player* player, ItemTemplate const* item);
++
+ PlayerbotFactory::PlayerbotFactory(Player* bot, uint32 level, uint32 itemQuality, uint32 gearScoreLimit)
+     : level(level), itemQuality(itemQuality), gearScoreLimit(gearScoreLimit), bot(bot)
+ {
+@@ -593,7 +596,7 @@
+                         : PlayerbotFactory::CalcMixedGearScore(sPlayerbotAIConfig.RandomGearScoreLimit,
+                                                                sPlayerbotAIConfig.RandomGearQualityLimit);
+         this->itemQuality = sPlayerbotAIConfig.RandomGearQualityLimit;
+-        this->gearScoreLimit = gs;
++        this->gearScoreLimit = BotGearStageActive(bot) ? 0 : gs;
+     }
+ }
+ 
+@@ -2179,6 +2182,9 @@
+ 
+ bool PlayerbotFactory::CanEquipItem(ItemTemplate const* proto)
+ {
++    if (!BotGearStageAllows(bot, proto))
++        return false;
++
+     if (proto->Duration != 0)
+         return false;
+ 
+@@ -2349,6 +2355,8 @@
+ 
+ void PlayerbotFactory::InitEquipment(bool incremental, bool second_chance)
+ {
++    bool const stageLimited = BotGearStageActive(bot);
++
+     if (level < 5)
+     {
+         // original items
+@@ -2510,9 +2518,10 @@
+         {
+             if (desiredQuality == ITEM_QUALITY_UNCOMMON)
+             {
+-                if (gearScoreLimit != 0 && !offhandBlocked)
++                if ((gearScoreLimit != 0 || stageLimited) && !offhandBlocked)
+                     foundWearable = hasWearableCandidate();
+-                if (!belowWindow && gearScoreLimit != 0 && windowFloor > 0 && !offhandBlocked && !foundWearable)
++                if (!belowWindow && (gearScoreLimit != 0 || stageLimited) && windowFloor > 0 &&
++                    !offhandBlocked && !foundWearable)
+                 {
+                     belowWindow = true;
+                     levelTop = windowFloor;
+@@ -2552,7 +2561,7 @@
+                                               // wearable TBC items above 35570 but nothing of significance
+                             continue;
+ 
+-                        if (!proto)
++                        if (!proto || !BotGearStageAllows(bot, proto))
+                             continue;
+ 
+                         if (shouldCheckGS && gearScoreLimit != 0 &&
+@@ -3029,6 +3038,8 @@
+ bool PlayerbotFactory::CanEquipUnseenItem(uint8 slot, uint16& dest, uint32 item)
+ {
+     dest = 0;
++    if (!BotGearStageAllows(bot, sObjectMgr->GetItemTemplate(item)))
++        return false;
+ 
+     if (Item* pItem = Item::CreateItem(item, 1, bot))
+     {

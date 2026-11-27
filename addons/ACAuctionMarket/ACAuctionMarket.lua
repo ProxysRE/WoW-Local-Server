@@ -54,7 +54,8 @@ local function button(parent,text,x,y,w,action)
 end
 local f=CreateFrame("Frame","ACAuctionMarketFrame",UIParent)
 A.frame=f; f:SetSize(790,540); f:SetPoint("CENTER"); f:SetFrameStrata("DIALOG")
-f:SetBackdrop({bgFile="Interface\\DialogFrame\\UI-DialogBox-Background",edgeFile="Interface\\DialogFrame\\UI-DialogBox-Border",tile=true,tileSize=32,edgeSize=32,insets={left=11,right=12,top=12,bottom=11}})
+f:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8X8",edgeFile="Interface\\DialogFrame\\UI-DialogBox-Border",tile=true,tileSize=32,edgeSize=32,insets={left=11,right=12,top=12,bottom=11}})
+f:SetBackdropColor(0.025,0.025,0.025,1)
 f:EnableMouse(true); f:SetMovable(true); f:RegisterForDrag("LeftButton")
 f:SetScript("OnDragStart",function(self) self:StartMoving() end)
 f:SetScript("OnDragStop",function(self) self:StopMovingOrSizing() end)
@@ -91,8 +92,9 @@ button(f,"Назад",25,-425,100,function() if A.page>0 then list(A.page-1) end
 A.pageLabel=label(f,"Страница 1",145,-430)
 button(f,"Далее",300,-425,100,function() if A.hasNext then list(A.page+1) end end)
 A.selectedText=label(f,"Выберите товар",25,-465,495)
+label(f,"Количество",530,-440)
 A.quantity=CreateFrame("EditBox",nil,f,"InputBoxTemplate");A.quantity:SetSize(60,24);A.quantity:SetPoint("TOPLEFT",530,-460)
-A.quantity:SetAutoFocus(false);A.quantity:SetNumeric(true);A.quantity:SetMaxLetters(4);A.quantity:SetText("20")
+A.quantity:SetJustifyH("CENTER");A.quantity:SetAutoFocus(false);A.quantity:SetNumeric(true);A.quantity:SetMaxLetters(4);A.quantity:SetText("20")
 A.quantity:SetScript("OnTextChanged",function() invalidate() end)
 button(f,"Рассчитать",610,-460,140,function()
     if not A.selected then status("Сначала выберите товар."); return end
@@ -125,7 +127,8 @@ events:SetScript("OnEvent",function(self,event,prefix,message,channel,sender)
         local guid=UnitGUID("npc") or UnitGUID("target")
         A.npc=guid and guid:gsub("^0[xX]","") or nil
         if AuctionFrame and not A.tab then
-            A.tab=button(AuctionFrame,"Товары",190,-35,90,show)
+            A.tab=button(AuctionFrame,"Купить количество",0,0,150,show)
+            A.tab:ClearAllPoints();A.tab:SetPoint("TOPRIGHT",AuctionFrame,"TOPRIGHT",-48,-6)
         end
         return
     elseif event=="AUCTION_HOUSE_CLOSED" then

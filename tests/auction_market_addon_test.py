@@ -42,7 +42,7 @@ function reply(t) event("CHAT_MSG_ADDON","ACAM1",ACAuctionMarket.pending.id.."|"
 ''')
 lua.execute((ROOT / "addons/ACAuctionMarket/ACAuctionMarket.lua").read_text())
 lua.execute(r'''
-event("AUCTION_HOUSE_SHOW");click("Товары");pump()
+event("AUCTION_HOUSE_SHOW");click("Купить количество");pump()
 assert(sent[1]:match("^1|L|00000000000004d2|0|$"))
 reply("P|0|0");reply("I|2770|436f70706572|200|10");reply("D")
 local a=ACAuctionMarket

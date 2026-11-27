@@ -46,6 +46,7 @@ jobs:
         run: |
           python3 tests/lich_king_whisper_test.py
           python3 tests/bot_dk_skip_test.py
+          python3 tests/bot_gear_progression_test.py
       - name: Verify loot and taxi regression scenarios
         run: python3 tests/playerbots_movement_test.py
       - name: Verify wardrobe permissions and complete-outfit prices

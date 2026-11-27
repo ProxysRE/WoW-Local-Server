@@ -1,0 +1,8 @@
+{
+  "repository": "Hoizame/AtlasLootClassic",
+  "commit": "8e99341e4e779328460bf7684c0d5b22ce50ddf1",
+  "license": "GPL-2.0",
+  "items": 16142,
+  "unknown_items": "deny while stage limit is enabled",
+  "crafting": "unclassified recipes conservatively use the final expansion stage"
+}
